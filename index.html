@@ -275,12 +275,7 @@ summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; co
       });
     // KẾT THÚC PHẦN MỚI
 
-    
-  }
-  
-    // --- BƯỚC NÀY CHÚNG TA SẼ BỔ SUNG GỬI ĐIỂM VỀ LẠI FIREBASE SAU ---
-    // Tạm thời chỉ hiển thị kết quả cho học sinh xem
-    
+    // Hiển thị kết quả cho học sinh xem
     _qGet('q-rname').textContent=qState.student.name;
     _qGet('q-rscore').textContent=score;
     _qGet('q-rcor').textContent=cor;
@@ -307,7 +302,7 @@ summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; co
     }).join('');
     
     qShowScreen('result');
-  }
+  } // CHÚ Ý: Dấu đóng ngoặc nhọn của hàm qFinish() phải nằm ở tuốt dưới cùng này.
 
   function qGoHome(){clearInterval(qState.timer);qShowScreen('home');qPopExamSelect();}
 
