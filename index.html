@@ -243,7 +243,7 @@ summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; co
   }
 
   function qNext(){qState.idx++;qRenderQ();}
-
+  
   function qFinish() {
     clearInterval(qState.timer);
     var qs=qState.qs, cor=qState.answers.filter(function(a,i){return a===qs[i].ans}).length;
@@ -251,6 +251,33 @@ summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; co
     var score=Math.round(cor/total*10*10)/10;
     var elapsed=Math.round((Date.now()-qState.startTime)/1000);
 
+    // BẮT ĐẦU PHẦN MỚI: ĐẨY DỮ LIỆU LÊN FIREBASE
+    var resultData = {
+        ngay_gio: new Date().toLocaleString('vi-VN'),
+        student: qState.student.name,
+        sid: qState.student.id,
+        exam: qState.exam.name,
+        correct: cor,
+        total: total,
+        score: score,
+        pct: pct,
+        time: elapsed,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp() // Dùng để sắp xếp thời gian chuẩn
+    };
+
+    // Đẩy vào collection 'results'
+    db.collection("results").add(resultData)
+      .then(function(docRef) {
+          console.log("Đã nộp bài thành công lên hệ thống!");
+      })
+      .catch(function(error) {
+          console.error("Lỗi khi nộp bài: ", error);
+      });
+    // KẾT THÚC PHẦN MỚI
+
+    
+  }
+  
     // --- BƯỚC NÀY CHÚNG TA SẼ BỔ SUNG GỬI ĐIỂM VỀ LẠI FIREBASE SAU ---
     // Tạm thời chỉ hiển thị kết quả cho học sinh xem
     
