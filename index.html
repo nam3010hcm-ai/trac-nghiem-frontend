@@ -49,7 +49,9 @@ summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; co
       <div class="q-fg"><label>Họ và tên *</label><input type="text" id="q-sname" placeholder="Nguyễn Văn A"/></div>
       <div class="q-fg"><label>Mã học viên / MSSV</label><input type="text" id="q-sid" placeholder="HV001"/></div>
       <div class="q-fg"><label>Chọn đề thi *</label><select id="q-esel" onchange="qUpdateDesc()"></select></div>
-      <div id="q-edesc" style="font-size:13px;color:#6b7280;margin-bottom:12px;min-height:16px;text-align:center;"></div>
+      <div id="q-edesc" style="font-size:13px;color:#6b7280;margin-bottom:12px;min-height:16px;text-align:center;">
+          <em>Đang kết nối hệ thống...</em>
+      </div>
       <button class="q-btn q-btn-p" style="width:100%;padding:12px;font-size:15px;margin-top:10px" onclick="qStartExam()">Bắt đầu làm bài →</button>
     </div>
   </div>
@@ -100,198 +102,226 @@ summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; co
   </div>
 </div>
 
+<!-- SDK CỦA FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
 <script>
-// Dữ liệu mẫu (Giáo viên có thể thay thế sau)
-var qData = {
-    "questions": [
-        {"id": 1, "cat": "Word", "subcat": "Word/Phần 1 - Định dạng ký tự", "text": "Phím tắt nào dùng để in đậm văn bản trong Word?", "opts": ["Ctrl+I","Ctrl+B","Ctrl+U","Ctrl+D"], "ans": 1},
-        {"id": 2, "cat": "Word", "subcat": "Word/Phần 2 - Định dạng đoạn văn", "text": "Phím tắt Ctrl+E dùng để căn chỉnh đoạn văn theo kiểu nào?", "opts": ["Căn trái","Căn giữa","Căn phải","Căn đều 2 bên"], "ans": 1},
-        {"id": 3, "cat": "Excel", "subcat": "Excel/Phần 2 - Hàm tính toán cơ bản", "text": "Hàm nào dùng để tính tổng trong Excel?", "opts": ["=COUNT()","=AVERAGE()","=SUM()","=MAX()"], "ans": 2},
-        {"id": 4, "cat": "PowerPoint", "subcat": "PowerPoint/Phần 1 - Tạo & quản lý slide", "text": "Để thêm slide mới trong PowerPoint, dùng phím tắt nào?", "opts": ["Ctrl+N","Ctrl+M","Ctrl+T","Ctrl+S"], "ans": 1}
-    ],
-    "exams": [
-        {"id": 1, "name": "Đề kiểm tra Word cơ bản", "desc": "Kiểm tra kiến thức MS Word", "count": 2, "cat": "Word", "subcat": "", "timeLimit": 5},
-        {"id": 2, "name": "Đề kiểm tra Tin học tổng hợp", "desc": "Gồm Word, Excel, PowerPoint", "count": 4, "cat": "", "subcat": "", "timeLimit": 10}
-    ]
-};
+  // =========================================================
+  // THAY THẾ ĐOẠN NÀY BẰNG CẤU HÌNH FIREBASE CỦA RIÊNG BẠN
+  // =========================================================
+  const firebaseConfig = {
+  apiKey: "AIzaSyC0qFK22HSRMD76ss8UUqBnzIbNGfal56c",
+  authDomain: "trac-nghiem-online-99801.firebaseapp.com",
+  projectId: "trac-nghiem-online-99801",
+  storageBucket: "trac-nghiem-online-99801.firebasestorage.app",
+  messagingSenderId: "952355515696",
+  appId: "1:952355515696:web:e332765e154b43ba0bacf5",
+  measurementId: "G-EPEZ2NLBCS"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-var qState = {exam: null, student: {}, qs: [], idx: 0, answers: [], startTime: 0, timer: null};
+  var qData = { questions: [], exams: [] };
+  var qState = {exam: null, student: {}, qs: [], idx: 0, answers: [], startTime: 0, timer: null};
 
-function _qGet(id) { return document.getElementById(id); }
-function _qQueryAll(sel) { return document.querySelectorAll(sel); }
+  function _qGet(id) { return document.getElementById(id); }
+  function _qQueryAll(sel) { return document.querySelectorAll(sel); }
 
-function qShowScreen(s) {
-  ['home','quiz','result'].forEach(function(x){
-    var el = _qGet('qs-'+x);
-    if(el) {
-      if(x===s) el.classList.add('active');
-      else el.classList.remove('active');
+  function qShowScreen(s) {
+    ['home','quiz','result'].forEach(function(x){
+      var el = _qGet('qs-'+x);
+      if(el) {
+        if(x===s) el.classList.add('active');
+        else el.classList.remove('active');
+      }
+    });
+  }
+
+  function qUpdateDesc() {
+    var sel = _qGet('q-esel');
+    if(!sel || !sel.value) return;
+    var eid = parseInt(sel.value);
+    var e = qData.exams.find(function(x){return x.id===eid});
+    if(e) {
+      var pool = (e.cat ? qData.questions.filter(function(q){return q.cat===e.cat}) : qData.questions).length;
+      var descEl = _qGet('q-edesc');
+      if(descEl) descEl.innerHTML = `<strong>${e.desc}</strong><br/>${e.count} câu • ${e.timeLimit > 0 ? '⏱ ' + e.timeLimit + ' phút' : 'Không giới hạn thời gian'}`;
     }
-  });
-}
-
-function qUpdateDesc() {
-  var sel = _qGet('q-esel');
-  if(!sel || !sel.value) return;
-  var eid = parseInt(sel.value);
-  var e = qData.exams.find(function(x){return x.id===eid});
-  if(e) {
-    var pool = (e.cat ? qData.questions.filter(function(q){return q.cat===e.cat}) : qData.questions).length;
-    var descEl = _qGet('q-edesc');
-    if(descEl) descEl.innerHTML = `<strong>${e.desc}</strong><br/>${e.count} câu • ${e.timeLimit > 0 ? '⏱ ' + e.timeLimit + ' phút' : 'Không giới hạn thời gian'}`;
   }
-}
 
-function qPopExamSelect() {
-  var sel = _qGet('q-esel');
-  if(!sel) return;
-  if(qData.exams && qData.exams.length > 0){
-      sel.innerHTML = qData.exams.map(function(e){ return '<option value="'+e.id+'">'+e.name+'</option>'; }).join('');
-      qUpdateDesc();
-  } else {
-      sel.innerHTML = '<option value="">(Chưa có đề thi nào)</option>';
-      _qGet('q-edesc').textContent = 'Vui lòng liên hệ giảng viên để thêm đề thi.';
-  }
-}
-
-function qShuffle(arr) { return arr.slice().sort(function(){return Math.random()-0.5}); }
-
-function qStartExam() {
-  var name = _qGet('q-sname').value.trim();
-  if(!name){alert('Vui lòng nhập họ tên để bắt đầu!');return;}
-  var sel = _qGet('q-esel');
-  if(!sel || !sel.value) {alert('Vui lòng chọn đề thi!');return;}
-  
-  var eid = parseInt(sel.value);
-  var exam = qData.exams.find(function(e){return e.id===eid});
-  
-  var pool = qData.questions;
-  if(exam.subcat) pool = pool.filter(function(q){return q.subcat===exam.subcat});
-  else if(exam.cat) pool = pool.filter(function(q){return q.cat===exam.cat});
-  
-  var qs = qShuffle(pool).slice(0, Math.min(exam.count, pool.length));
-  if(qs.length===0){alert('Đề thi này chưa có đủ câu hỏi trong ngân hàng!');return;}
-  
-  qState = {exam: exam, student: {name:name, id: _qGet('q-sid').value.trim()}, qs: qs, idx: 0, answers: [], startTime: Date.now(), timer: null};
-  clearInterval(qState.timer);
-  
-  var tl = (exam.timeLimit||0)*60;
-  qState.timer = setInterval(function(){
-    var el = Math.floor((Date.now()-qState.startTime)/1000);
-    if(tl>0){
-      var rem = tl-el;
-      if(rem<=0){qFinish();return;}
-      var m=Math.floor(rem/60),s=rem%60;
-      _qGet('q-timer').textContent='⏱ '+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  function qPopExamSelect() {
+    var sel = _qGet('q-esel');
+    if(!sel) return;
+    if(qData.exams && qData.exams.length > 0){
+        sel.innerHTML = qData.exams.map(function(e){ return '<option value="'+e.id+'">'+e.name+'</option>'; }).join('');
+        qUpdateDesc();
     } else {
-      var m=Math.floor(el/60),s=el%60;
-      _qGet('q-timer').textContent='⏱ '+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+        sel.innerHTML = '<option value="">(Chưa có đề thi nào)</option>';
+        _qGet('q-edesc').textContent = 'Giáo viên chưa cập nhật đề thi lên hệ thống.';
     }
-  }, 1000);
-  
-  qShowScreen('quiz');
-  qRenderQ();
-}
+  }
 
-function qRenderQ() {
-  var qs=qState.qs, q=qs[qState.idx], total=qs.length;
-  _qGet('q-ptxt').textContent='Câu '+(qState.idx+1)+'/'+total;
-  _qGet('q-pfill').style.width=((qState.idx+1)/total*100)+'%';
-  _qGet('q-cat').textContent=q.subcat||q.cat||'Tổng hợp';
-  _qGet('q-qtext').textContent=q.text;
-  
-  var cor = qState.answers.filter(function(a,i){return a===qs[i].ans}).length;
-  _qGet('q-live').textContent='Đúng: '+cor+'/'+qState.idx;
-  
-  var keys=['A','B','C','D'];
-  _qGet('q-opts').innerHTML=q.opts.map(function(o,i){
-    return `<button class="q-opt" onclick="qSelect(${i})"><span class="q-okey">${keys[i]}</span>${o}</button>`;
-  }).join('');
-  
-  _qGet('q-fb').style.display='none';
-  _qGet('q-bnext').style.display='none';
-  _qGet('q-bfinish').style.display='none';
-}
+  function qShuffle(arr) { return arr.slice().sort(function(){return Math.random()-0.5}); }
 
-function qSelect(idx) {
-  var qs=qState.qs, q=qs[qState.idx];
-  qState.answers[qState.idx]=idx;
-  _qQueryAll('.q-opt').forEach(function(b){b.disabled=true});
-  var btns=_qQueryAll('.q-opt');
-  btns[idx].classList.add(idx===q.ans?'correct':'wrong');
-  if(idx!==q.ans) btns[q.ans].classList.add('correct');
-  
-  var fb=_qGet('q-fb');
-  fb.style.display='block';
-  fb.className='q-fb '+(idx===q.ans?'q-fb-ok':'q-fb-bad');
-  fb.innerHTML=idx===q.ans?'✅ Chính xác!':'❌ Sai rồi! Đáp án đúng: <strong>'+['A','B','C','D'][q.ans]+'. '+q.opts[q.ans]+'</strong>';
-  
-  var cor=qState.answers.filter(function(a,i){return a===qs[i].ans}).length;
-  _qGet('q-live').textContent='Đúng: '+cor+'/'+(qState.idx+1);
-  
-  if(qState.idx+1<qs.length) _qGet('q-bnext').style.display='inline-block';
-  else _qGet('q-bfinish').style.display='inline-block';
-}
+  function qStartExam() {
+    var name = _qGet('q-sname').value.trim();
+    if(!name){alert('Vui lòng nhập họ tên để bắt đầu!');return;}
+    var sel = _qGet('q-esel');
+    if(!sel || !sel.value) {alert('Vui lòng chờ tải đề thi hoặc chọn một đề!');return;}
+    
+    var eid = parseInt(sel.value);
+    var exam = qData.exams.find(function(e){return e.id===eid});
+    
+    var pool = qData.questions;
+    if(exam.subcat) pool = pool.filter(function(q){return q.subcat===exam.subcat});
+    else if(exam.cat) pool = pool.filter(function(q){return q.cat===exam.cat});
+    
+    var qs = qShuffle(pool).slice(0, Math.min(exam.count, pool.length));
+    if(qs.length===0){alert('Đề thi này bị lỗi (chưa có đủ câu hỏi trong ngân hàng)!');return;}
+    
+    qState = {exam: exam, student: {name:name, id: _qGet('q-sid').value.trim()}, qs: qs, idx: 0, answers: [], startTime: Date.now(), timer: null};
+    clearInterval(qState.timer);
+    
+    var tl = (exam.timeLimit||0)*60;
+    qState.timer = setInterval(function(){
+      var el = Math.floor((Date.now()-qState.startTime)/1000);
+      if(tl>0){
+        var rem = tl-el;
+        if(rem<=0){qFinish();return;}
+        var m=Math.floor(rem/60),s=rem%60;
+        _qGet('q-timer').textContent='⏱ '+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+      } else {
+        var m=Math.floor(el/60),s=el%60;
+        _qGet('q-timer').textContent='⏱ '+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+      }
+    }, 1000);
+    
+    qShowScreen('quiz');
+    qRenderQ();
+  }
 
-function qNext(){qState.idx++;qRenderQ();}
+  function qRenderQ() {
+    var qs=qState.qs, q=qs[qState.idx], total=qs.length;
+    _qGet('q-ptxt').textContent='Câu '+(qState.idx+1)+'/'+total;
+    _qGet('q-pfill').style.width=((qState.idx+1)/total*100)+'%';
+    _qGet('q-cat').textContent=q.subcat||q.cat||'Tổng hợp';
+    _qGet('q-qtext').textContent=q.text;
+    
+    var cor = qState.answers.filter(function(a,i){return a===qs[i].ans}).length;
+    _qGet('q-live').textContent='Đúng: '+cor+'/'+qState.idx;
+    
+    var keys=['A','B','C','D'];
+    _qGet('q-opts').innerHTML=q.opts.map(function(o,i){
+      return `<button class="q-opt" onclick="qSelect(${i})"><span class="q-okey">${keys[i]}</span>${o}</button>`;
+    }).join('');
+    
+    _qGet('q-fb').style.display='none';
+    _qGet('q-bnext').style.display='none';
+    _qGet('q-bfinish').style.display='none';
+  }
 
-function qFinish() {
-  clearInterval(qState.timer);
-  var qs=qState.qs, cor=qState.answers.filter(function(a,i){return a===qs[i].ans}).length;
-  var total=qs.length, pct=Math.round(cor/total*100);
-  var score=Math.round(cor/total*10*10)/10;
-  var elapsed=Math.round((Date.now()-qState.startTime)/1000);
+  function qSelect(idx) {
+    var qs=qState.qs, q=qs[qState.idx];
+    qState.answers[qState.idx]=idx;
+    _qQueryAll('.q-opt').forEach(function(b){b.disabled=true});
+    var btns=_qQueryAll('.q-opt');
+    btns[idx].classList.add(idx===q.ans?'correct':'wrong');
+    if(idx!==q.ans) btns[q.ans].classList.add('correct');
+    
+    var fb=_qGet('q-fb');
+    fb.style.display='block';
+    fb.className='q-fb '+(idx===q.ans?'q-fb-ok':'q-fb-bad');
+    fb.innerHTML=idx===q.ans?'✅ Chính xác!':'❌ Sai rồi! Đáp án đúng: <strong>'+['A','B','C','D'][q.ans]+'. '+q.opts[q.ans]+'</strong>';
+    
+    var cor=qState.answers.filter(function(a,i){return a===qs[i].ans}).length;
+    _qGet('q-live').textContent='Đúng: '+cor+'/'+(qState.idx+1);
+    
+    if(qState.idx+1<qs.length) _qGet('q-bnext').style.display='inline-block';
+    else _qGet('q-bfinish').style.display='inline-block';
+  }
 
-  _qGet('q-rname').textContent=qState.student.name;
-  _qGet('q-rscore').textContent=score;
-  _qGet('q-rcor').textContent=cor;
-  _qGet('q-rwrg').textContent=total-cor;
-  var em=elapsed>=60?Math.floor(elapsed/60)+'p ':'';
-  _qGet('q-rtime').textContent=em+(elapsed%60)+'s';
-  _qGet('q-rpct').textContent=pct+'%';
-  
-  var c=_qGet('q-rcircle'),sn=_qGet('q-rscore');
-  if(pct>=80){c.style.borderColor='#1D9E75';c.style.background='#f0fdf8';sn.style.color='#0F6E56';}
-  else if(pct>=60){c.style.borderColor='#f59e0b';c.style.background='#fffbeb';sn.style.color='#b45309';}
-  else{c.style.borderColor='#ef4444';c.style.background='#fef2f2';sn.style.color='#b91c1c';}
-  
-  _qGet('q-rmsg').textContent=pct>=80?'🎉 Xuất sắc!':pct>=60?'👍 Khá tốt!':'💪 Cần cố gắng thêm nhé!';
-  
-  var keys=['A','B','C','D'];
-  _qGet('q-review').innerHTML=qs.map(function(q,i){
-    var ua=qState.answers[i],ok=ua===q.ans;
-    return `<div class="q-ri"><div style="display:flex;gap:8px;align-items:flex-start"><div class="q-dot" style="background:${ok?'#1D9E75':'#ef4444'}"></div><div>
-      <div style="font-size:14px;font-weight:600;margin-bottom:4px;color:#1a202c">${q.text}</div>
-      <div style="font-size:13px;color:${ok?'#1D9E75':'#ef4444'}">Lựa chọn của bạn: ${keys[ua]}. ${q.opts[ua]}</div>
-      ${ok?'':`<div style="font-size:13px;color:#1D9E75;margin-top:2px">✓ Đáp án đúng: ${keys[q.ans]}. ${q.opts[q.ans]}</div>`}
-      </div></div></div>`;
-  }).join('');
-  
-  qShowScreen('result');
-}
+  function qNext(){qState.idx++;qRenderQ();}
 
-function qGoHome(){clearInterval(qState.timer);qShowScreen('home');qPopExamSelect();}
+  function qFinish() {
+    clearInterval(qState.timer);
+    var qs=qState.qs, cor=qState.answers.filter(function(a,i){return a===qs[i].ans}).length;
+    var total=qs.length, pct=Math.round(cor/total*100);
+    var score=Math.round(cor/total*10*10)/10;
+    var elapsed=Math.round((Date.now()-qState.startTime)/1000);
 
-function qRetake(){
-  qState.idx=0;qState.answers=[];
-  var pool=qData.questions;
-  if(qState.exam.subcat) pool=pool.filter(function(q){return q.subcat===qState.exam.subcat});
-  else if(qState.exam.cat) pool=pool.filter(function(q){return q.cat===qState.exam.cat});
-  qState.qs=qShuffle(pool).slice(0,Math.min(qState.exam.count,pool.length));
-  qState.startTime=Date.now();
-  clearInterval(qState.timer);
-  qState.timer=setInterval(function(){
-    var el=Math.floor((Date.now()-qState.startTime)/1000),m=Math.floor(el/60),s=el%60;
-    _qGet('q-timer').textContent='⏱ '+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-  },1000);
-  qShowScreen('quiz');
-  qRenderQ();
-}
+    // --- BƯỚC NÀY CHÚNG TA SẼ BỔ SUNG GỬI ĐIỂM VỀ LẠI FIREBASE SAU ---
+    // Tạm thời chỉ hiển thị kết quả cho học sinh xem
+    
+    _qGet('q-rname').textContent=qState.student.name;
+    _qGet('q-rscore').textContent=score;
+    _qGet('q-rcor').textContent=cor;
+    _qGet('q-rwrg').textContent=total-cor;
+    var em=elapsed>=60?Math.floor(elapsed/60)+'p ':'';
+    _qGet('q-rtime').textContent=em+(elapsed%60)+'s';
+    _qGet('q-rpct').textContent=pct+'%';
+    
+    var c=_qGet('q-rcircle'),sn=_qGet('q-rscore');
+    if(pct>=80){c.style.borderColor='#1D9E75';c.style.background='#f0fdf8';sn.style.color='#0F6E56';}
+    else if(pct>=60){c.style.borderColor='#f59e0b';c.style.background='#fffbeb';sn.style.color='#b45309';}
+    else{c.style.borderColor='#ef4444';c.style.background='#fef2f2';sn.style.color='#b91c1c';}
+    
+    _qGet('q-rmsg').textContent=pct>=80?'🎉 Xuất sắc!':pct>=60?'👍 Khá tốt!':'💪 Cần cố gắng thêm nhé!';
+    
+    var keys=['A','B','C','D'];
+    _qGet('q-review').innerHTML=qs.map(function(q,i){
+      var ua=qState.answers[i],ok=ua===q.ans;
+      return `<div class="q-ri"><div style="display:flex;gap:8px;align-items:flex-start"><div class="q-dot" style="background:${ok?'#1D9E75':'#ef4444'}"></div><div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;color:#1a202c">${q.text}</div>
+        <div style="font-size:13px;color:${ok?'#1D9E75':'#ef4444'}">Lựa chọn của bạn: ${keys[ua]}. ${q.opts[ua]}</div>
+        ${ok?'':`<div style="font-size:13px;color:#1D9E75;margin-top:2px">✓ Đáp án đúng: ${keys[q.ans]}. ${q.opts[q.ans]}</div>`}
+        </div></div></div>`;
+    }).join('');
+    
+    qShowScreen('result');
+  }
 
-// Chạy ngay khi load xong HTML
-window.onload = function() {
-    qPopExamSelect();
-};
+  function qGoHome(){clearInterval(qState.timer);qShowScreen('home');qPopExamSelect();}
+
+  function qRetake(){
+    qState.idx=0;qState.answers=[];
+    var pool=qData.questions;
+    if(qState.exam.subcat) pool=pool.filter(function(q){return q.subcat===qState.exam.subcat});
+    else if(qState.exam.cat) pool=pool.filter(function(q){return q.cat===qState.exam.cat});
+    qState.qs=qShuffle(pool).slice(0,Math.min(qState.exam.count,pool.length));
+    qState.startTime=Date.now();
+    clearInterval(qState.timer);
+    qState.timer=setInterval(function(){
+      var el=Math.floor((Date.now()-qState.startTime)/1000),m=Math.floor(el/60),s=el%60;
+      _qGet('q-timer').textContent='⏱ '+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    },1000);
+    qShowScreen('quiz');
+    qRenderQ();
+  }
+
+  // --- HÀM TẢI DỮ LIỆU TỪ FIREBASE ---
+  async function loadDataFromFirebase() {
+      try {
+          // Lấy dữ liệu đề thi
+          const docExams = await db.collection("config").doc("exams").get();
+          if (docExams.exists) qData.exams = docExams.data().data;
+
+          // Lấy dữ liệu câu hỏi
+          const docQs = await db.collection("config").doc("questions").get();
+          if (docQs.exists) qData.questions = docQs.data().data;
+
+          qPopExamSelect();
+      } catch (error) {
+          console.error("Lỗi tải dữ liệu:", error);
+          _qGet('q-edesc').innerHTML = "<span style='color:red;'>Lỗi kết nối máy chủ. Vui lòng F5 thử lại.</span>";
+      }
+  }
+
+  // Khởi động
+  window.onload = function() {
+      loadDataFromFirebase();
+  };
 </script>
 </body>
 </html>
