@@ -176,6 +176,7 @@ summary{cursor:pointer;font-size:14px;font-weight:600;padding:8px 0;color:#37415
       <button class="tab-btn active" id="tt-q" onclick="switchTTab('q')">📚 Câu hỏi</button>
       <button class="tab-btn" id="tt-e" onclick="switchTTab('e')">📋 Đề thi</button>
       <button class="tab-btn" id="tt-r" onclick="switchTTab('r')">📊 Kết quả</button>
+      <button class="tab-btn" id="tt-c" onclick="switchTTab('c')">🗂️ Chủ đề</button>
     </div>
 
     <div id="tc-q" class="tab-content active">
@@ -187,8 +188,6 @@ summary{cursor:pointer;font-size:14px;font-weight:600;padding:8px 0;color:#37415
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <select id="flt-cat" style="flex:1;padding:8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px" onchange="updateFltSubcat()">
           <option value="">(Tất cả chủ đề)</option>
-          <option>Word</option><option>Excel</option><option>PowerPoint</option>
-          <option>Internet & Email</option><option>Kiến thức chung</option>
         </select>
         <select id="flt-subcat" style="flex:2;padding:8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px">
           <option value="">(Tất cả phần)</option>
@@ -201,10 +200,7 @@ summary{cursor:pointer;font-size:14px;font-weight:600;padding:8px 0;color:#37415
         <div class="grid2" style="margin-bottom:10px">
           <div class="fg" style="margin:0">
             <label>Chủ đề cha</label>
-            <select id="qf-cat" onchange="updateQFormSubcat()">
-              <option>Word</option><option>Excel</option><option>PowerPoint</option>
-              <option>Internet & Email</option><option>Kiến thức chung</option>
-            </select>
+            <select id="qf-cat" onchange="updateQFormSubcat()"></select>
           </div>
           <div class="fg" style="margin:0">
             <label>Phần (chủ đề con) *</label>
@@ -248,8 +244,6 @@ summary{cursor:pointer;font-size:14px;font-weight:600;padding:8px 0;color:#37415
             <label>Lọc theo chủ đề cha</label>
             <select id="ef-cat" onchange="updateEFormSubcat()">
               <option value="">(Tất cả chủ đề)</option>
-              <option>Word</option><option>Excel</option><option>PowerPoint</option>
-              <option>Internet & Email</option><option>Kiến thức chung</option>
             </select>
           </div>
           <div class="fg" style="margin:0">
@@ -292,13 +286,49 @@ summary{cursor:pointer;font-size:14px;font-weight:600;padding:8px 0;color:#37415
         </div>
       </div>
     </div>
+
+    <div id="tc-c" class="tab-content">
+      <div class="sec-title">Quản lý Chủ đề Cha & Con</div>
+      
+      <div class="grid2">
+        <div class="card" style="padding:16px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px; color:#475569;">➕ THÊM CHỦ ĐỀ CHA MỚI</div>
+          <div class="fg">
+            <label>Tên Chủ đề Cha</label>
+            <input id="new-parent-cat" placeholder="Ví dụ: Access, Windows 11..."/>
+          </div>
+          <button class="btn btn-p btn-full" onclick="addParentCategory()">Thêm Chủ Đề Cha</button>
+        </div>
+
+        <div class="card" style="padding:16px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px; color:#475569;">➕ THÊM CHỦ ĐỀ CON MỚI</div>
+          <div class="fg">
+            <label>Thuộc Chủ đề Cha</label>
+            <select id="add-sub-parent"></select>
+          </div>
+          <div class="fg">
+            <label>Tên Chủ đề Con</label>
+            <input id="new-sub-cat" placeholder="Ví dụ: Phần 1 - Làm quen..."/>
+          </div>
+          <button class="btn btn-p btn-full" onclick="addSubCategory()">Thêm Chủ Đề Con</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700; font-size:14px; margin-bottom:14px; color:#1e293b; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+          🗂️ CẤU TRÚC DANH MỤC HIỆN TẠI
+        </div>
+        <div id="cat-management-list"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
-import { getFirestore, collection, getDocs, addDoc, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, addDoc, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
 // Cấu hình từ tài khoản Firebase của bạn
 const firebaseConfig = {
@@ -317,7 +347,7 @@ const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
 // ==================== DATA MẶC ĐỊNH SƠ CẤP ====================
-const SUBCATS = {
+const DEFAULT_SUBCATS = {
   "Word":["Word/Phần 1 - Định dạng ký tự","Word/Phần 2 - Định dạng đoạn văn","Word/Phần 3 - Định dạng trang & lề","Word/Phần 4 - Bảng biểu","Word/Phần 5 - Hình ảnh & đối tượng","Word/Phần 6 - Header, Footer & số trang","Word/Phần 7 - Styles & Heading","Word/Phần 8 - Tiện ích & phím tắt"],
   "Excel":["Excel/Phần 1 - Nhập liệu & định dạng ô","Excel/Phần 2 - Hàm tính toán cơ bản","Excel/Phần 3 - Hàm điều kiện & logic","Excel/Phần 4 - Hàm tra cứu (VLOOKUP, HLOOKUP)","Excel/Phần 5 - Hàm văn bản & ngày tháng","Excel/Phần 6 - Biểu đồ","Excel/Phần 7 - Lọc, sắp xếp & PivotTable","Excel/Phần 8 - Tiện ích & phím tắt"],
   "PowerPoint":["PowerPoint/Phần 1 - Tạo & quản lý slide","PowerPoint/Phần 2 - Định dạng văn bản & hình ảnh","PowerPoint/Phần 3 - Hiệu ứng chuyển slide","PowerPoint/Phần 4 - Hiệu ứng đối tượng (Animation)","PowerPoint/Phần 5 - Trình chiếu & xuất file"],
@@ -358,6 +388,7 @@ const DEFAULT_EXAMS = [
 ];
 
 // Khởi tạo các mảng toàn cục rỗng, dữ liệu sẽ được load từ Firebase
+let SUBCATS     = {};
 let questions = [];
 let exams     = [];
 let results   = [];
@@ -368,6 +399,16 @@ let qState    = {};
 // ==================== ĐỒNG BỘ VỚI CLOUD DB ====================
 async function initFirebaseData() {
   try {
+    // 0. Tải Cấu trúc Danh mục Chủ đề từ Firebase
+    const catSnap = await getDoc(doc(db, "metadata", "categories"));
+    if (!catSnap.exists()) {
+      SUBCATS = { ...DEFAULT_SUBCATS };
+      await setDoc(doc(db, "metadata", "categories"), SUBCATS);
+    } else {
+      SUBCATS = catSnap.data();
+    }
+    populateCategoryDropdowns();
+
     // 1. Tải Ngân hàng câu hỏi
     const qSnap = await getDocs(collection(db, "questions"));
     if (qSnap.empty) {
@@ -404,6 +445,29 @@ async function initFirebaseData() {
   // Cập nhật giao diện ban đầu sau khi tải xong dữ liệu
   populateExamSelect();
   updateQFormSubcat();
+}
+
+// Hàm render toàn bộ dropdown phân loại phụ thuộc vào SUBCATS động
+function populateCategoryDropdowns() {
+  const cats = Object.keys(SUBCATS).sort();
+  
+  // 1. Dropdown lọc câu hỏi lớn
+  const fltCat = document.getElementById('flt-cat');
+  fltCat.innerHTML = '<option value="">(Tất cả chủ đề)</option>' + cats.map(c => `<option>${c}</option>`).join('');
+  
+  // 2. Dropdown form thêm câu hỏi
+  const qfCat = document.getElementById('qf-cat');
+  qfCat.innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+  
+  // 3. Dropdown tạo đề thi
+  const efCat = document.getElementById('ef-cat');
+  efCat.innerHTML = '<option value="">(Tất cả chủ đề)</option>' + cats.map(c => `<option>${c}</option>`).join('');
+  
+  // 4. Dropdown chọn cha để thêm con (Tab quản lý chủ đề)
+  const addSubParent = document.getElementById('add-sub-parent');
+  if(addSubParent) {
+    addSubParent.innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+  }
 }
 
 // ==================== NAVIGATION ====================
@@ -540,12 +604,10 @@ async function finishExam(){
   
   results.unshift(result);
   
-  // Gửi kết quả thi trực tiếp lên Cloud Database Firebase
   try {
     await addDoc(collection(db, "results"), result);
   } catch(e) { console.error("Lỗi gửi kết quả lên Firebase:", e); }
 
-  // Cập nhật giao diện kết quả công bố
   document.getElementById('r-name').textContent=student.name;
   document.getElementById('r-score').textContent=score;
   document.getElementById('r-cor').textContent=cor;
@@ -584,7 +646,7 @@ function retake(){
   showScreen('sc-quiz'); renderQ();
 }
 
-// ==================== TEACHER LOGIN ====================
+// ==================== TEACHER PANEL CONTROLS ====================
 function doLogin(){
   const pass = document.getElementById('t-pass').value;
   if(pass===TEACHER_PASS){
@@ -602,11 +664,12 @@ function doLogout(){
   document.getElementById('t-err').style.display='none';
 }
 function switchTTab(t){
-  ['q','e','r'].forEach(x=>{
+  ['q','e','r','c'].forEach(x=>{
     document.getElementById('tc-'+x).classList.toggle('active',x===t);
     document.getElementById('tt-'+x).classList.toggle('active',x===t);
   });
   if(t==='r') renderResults();
+  if(t==='c') renderCatManagementList();
 }
 
 // ==================== SUBCAT HELPERS ====================
@@ -628,6 +691,91 @@ function updateEFormSubcat(){
   fillSubcatSelect('ef-subcat',cat,true,'(Không lọc theo phần)');
 }
 
+// ==================== ĐỘC LẬP: CHỨC NĂNG CRUD CHỦ ĐỀ VÀO FIREBASE ====================
+async function addParentCategory() {
+  const name = document.getElementById('new-parent-cat').value.trim();
+  if(!name) { alert('Vui lòng điền tên chủ đề cha!'); return; }
+  if(SUBCATS[name]) { alert('Chủ đề cha này đã tồn tại!'); return; }
+
+  SUBCATS[name] = [];
+  await setDoc(doc(db, "metadata", "categories"), SUBCATS);
+  document.getElementById('new-parent-cat').value = '';
+  
+  populateCategoryDropdowns();
+  updateFltSubcat();
+  renderCatManagementList();
+}
+
+async function deleteParentCategory(parent) {
+  if(!confirm(`Cảnh báo: Xóa chủ đề cha "${parent}" sẽ làm mất cấu trúc lọc của các câu hỏi thuộc chủ đề này. Bạn có chắc chắn?`)) return;
+  delete SUBCATS[parent];
+  await setDoc(doc(db, "metadata", "categories"), SUBCATS);
+  
+  populateCategoryDropdowns();
+  updateFltSubcat();
+  renderCatManagementList();
+}
+
+async function addSubCategory() {
+  const parent = document.getElementById('add-sub-parent').value;
+  let subName = document.getElementById('new-sub-cat').value.trim();
+  if(!parent) { alert('Vui lòng tạo chủ đề cha trước!'); return; }
+  if(!subName) { alert('Vui lòng nhập tên phần con!'); return; }
+
+  if(!subName.startsWith(parent + '/')) {
+    subName = parent + '/' + subName;
+  }
+
+  if(SUBCATS[parent].includes(subName)) { alert('Phần con này đã tồn tại!'); return; }
+  
+  SUBCATS[parent].push(subName);
+  await setDoc(doc(db, "metadata", "categories"), SUBCATS);
+  document.getElementById('new-sub-cat').value = '';
+
+  updateFltSubcat();
+  renderCatManagementList();
+}
+
+async function deleteSubCategory(parent, sub) {
+  if(!confirm(`Xóa phần con "${sub}" ra khỏi danh mục?`)) return;
+  SUBCATS[parent] = SUBCATS[parent].filter(s => s !== sub);
+  await setDoc(doc(db, "metadata", "categories"), SUBCATS);
+
+  updateFltSubcat();
+  renderCatManagementList();
+}
+
+function renderCatManagementList() {
+  const listDiv = document.getElementById('cat-management-list');
+  if(!listDiv) return;
+
+  const cats = Object.keys(SUBCATS).sort();
+  if(cats.length === 0) {
+    listDiv.innerHTML = '<div class="empty">📭 Hệ thống chưa có danh mục chủ đề nào.</div>';
+    return;
+  }
+
+  listDiv.innerHTML = cats.map(parent => {
+    const subs = SUBCATS[parent] || [];
+    return `
+      <div style="border: 1px solid #e9edf2; border-radius: 10px; padding: 14px; margin-bottom: 12px; background: #fafafa;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
+          <span style="font-weight: 700; color: #1e293b; font-size: 14px;">📁 Chủ đề cha: ${parent} (${subs.length} phần con)</span>
+          <button class="btn btn-sm btn-danger" style="padding:4px 10px;" onclick="deleteParentCategory('${parent}')">Xóa Cha</button>
+        </div>
+        <div style="padding-left: 16px;">
+          ${subs.length === 0 ? '<span style="font-size:12px; color:#94a3b8; font-style:italic;">(Chưa có chủ đề con/phần con)</span>' : subs.map(sub => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px dashed #f1f5f9; font-size: 13px;">
+              <span style="color: #475569;">🔹 ${sub}</span>
+              <button class="btn btn-sm" style="padding: 2px 8px; font-size: 11px; color: #dc2626; border-color: #fecaca; background:#fff;" onclick="deleteSubCategory('${parent}', '${sub}')">Xóa Con</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 // ==================== QUESTIONS CRUD (FIREBASE) ====================
 let editQId=null;
 function openQForm(id=null){
@@ -645,7 +793,19 @@ function openQForm(id=null){
   } else {
     ['qf-text','qf-a','qf-b','qf-c','qf-d'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('qf-ans').value='0';
-    updateQFormSubcat();
+    
+    const currentFltCat = document.getElementById('flt-cat').value;
+    const currentFltSubcat = document.getElementById('flt-subcat').value;
+    
+    if(currentFltCat) {
+      document.getElementById('qf-cat').value = currentFltCat;
+      fillSubcatSelect('qf-subcat', currentFltCat, false);
+      if(currentFltSubcat) {
+        document.getElementById('qf-subcat').value = currentFltSubcat;
+      }
+    } else {
+      updateQFormSubcat();
+    }
   }
   document.getElementById('qform').style.display='block';
 }
@@ -828,15 +988,16 @@ function exportCSV(){
   a.click();
 }
 
-// Đưa toàn bộ các hàm ra không gian window toàn cục phục vụ cho inline HTML triggers (onclick, onchange...)
+// Xuất các hàm điều khiển ra môi trường window toàn cục để inline triggers HTML nhận diện
 Object.assign(window, {
   showMain, updateExamDesc, startExam, selectAns, nextQ, finishExam, goHome, retake,
   doLogin, doLogout, switchTTab, updateFltSubcat, openQForm, closeQForm, saveQ, deleteQ,
   openEForm, closeEForm, saveExam, deleteExam, toggleExamVisibility, clearResults, exportCSV,
-  updateQFormSubcat, updateEFormSubcat, renderQList
+  updateQFormSubcat, updateEFormSubcat, renderQList, addParentCategory, deleteParentCategory,
+  addSubCategory, deleteSubCategory
 });
 
-// Chạy khởi tạo dữ liệu
+// Kích hoạt tiến trình tải và đồng bộ dữ liệu đám mây
 initFirebaseData();
 </script>
 </body>
