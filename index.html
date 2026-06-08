@@ -315,8 +315,9 @@ summary{cursor:pointer;font-size:14px;font-weight:600;padding:8px 0;color:#37415
       </div>
 
       <div class="card">
-        <div style="font-weight:700; font-size:14px; margin-bottom:14px; color:#1e293b; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
-          🗂️ CẤU TRÚC DANH MỤC HIỆN TẠI
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:8px; margin-bottom:14px;">
+          <div style="font-weight:700; font-size:14px; color:#1e293b;">🗂️ CẤU TRÚC DANH MỤC HIỆN TẠI</div>
+          <button class="btn btn-sm btn-warn" onclick="restoreDefaultCategories()">🔄 Khôi phục danh mục gốc</button>
         </div>
         <div id="cat-management-list"></div>
       </div>
@@ -401,13 +402,14 @@ async function initFirebaseData() {
   try {
     // 0. Tải Cấu trúc Danh mục Chủ đề từ Firebase
     const catSnap = await getDoc(doc(db, "metadata", "categories"));
-    if (!catSnap.exists()) {
-      SUBCATS = { ...DEFAULT_SUBCATS };
+    
+    // Kiểm tra xem document có tồn tại và có chứa dữ liệu hợp lệ hay không
+    if (!catSnap.exists() || Object.keys(catSnap.data()).length === 0) {
+      SUBCATS = JSON.parse(JSON.stringify(DEFAULT_SUBCATS));
       await setDoc(doc(db, "metadata", "categories"), SUBCATS);
     } else {
       SUBCATS = catSnap.data();
     }
-    populateCategoryDropdowns();
 
     // 1. Tải Ngân hàng câu hỏi
     const qSnap = await getDocs(collection(db, "questions"));
@@ -440,11 +442,37 @@ async function initFirebaseData() {
 
   } catch (error) {
     console.error("Lỗi kết nối database Firestore. Chuyển về chế độ cục bộ:", error);
+    // Nếu lỗi mạng, nạp tạm danh mục gốc để không bị kẹt giao diện
+    if(Object.keys(SUBCATS).length === 0) {
+      SUBCATS = JSON.parse(JSON.stringify(DEFAULT_SUBCATS));
+    }
   }
 
   // Cập nhật giao diện ban đầu sau khi tải xong dữ liệu
+  populateCategoryDropdowns();
   populateExamSelect();
   updateQFormSubcat();
+  
+  // Gọi render luôn phòng trường hợp đang ở tab quản lý
+  renderCatManagementList();
+}
+
+// NÚT KHÔI PHỤC DANH MỤC KHẨN CẤP
+async function restoreDefaultCategories() {
+  if(!confirm('Bạn có chắc muốn khôi phục lại toàn bộ danh mục chủ đề gốc (Word, Excel...)? Các chủ đề bạn vừa tạo thêm có thể bị xóa.')) return;
+  
+  SUBCATS = JSON.parse(JSON.stringify(DEFAULT_SUBCATS));
+  try {
+    await setDoc(doc(db, "metadata", "categories"), SUBCATS);
+    alert('✅ Đã khôi phục thành công danh mục gốc!');
+  } catch (e) {
+    console.error(e);
+    alert('⚠️ Khôi phục tạm thời trên máy bạn (Lỗi chưa gửi được lên Cloud).');
+  }
+  
+  populateCategoryDropdowns();
+  updateFltSubcat();
+  renderCatManagementList();
 }
 
 // Hàm render toàn bộ dropdown phân loại phụ thuộc vào SUBCATS động
@@ -652,7 +680,7 @@ function doLogin(){
   if(pass===TEACHER_PASS){
     document.getElementById('t-login').style.display='none';
     document.getElementById('t-panel').style.display='block';
-    renderQList(); renderEList(); renderResults();
+    renderQList(); renderEList(); renderResults(); renderCatManagementList();
   } else {
     document.getElementById('t-err').style.display='block';
   }
@@ -751,7 +779,7 @@ function renderCatManagementList() {
 
   const cats = Object.keys(SUBCATS).sort();
   if(cats.length === 0) {
-    listDiv.innerHTML = '<div class="empty">📭 Hệ thống chưa có danh mục chủ đề nào.</div>';
+    listDiv.innerHTML = '<div class="empty">📭 Hệ thống chưa có danh mục chủ đề nào. Bạn hãy bấm khôi phục hoặc tạo mới!</div>';
     return;
   }
 
@@ -994,7 +1022,7 @@ Object.assign(window, {
   doLogin, doLogout, switchTTab, updateFltSubcat, openQForm, closeQForm, saveQ, deleteQ,
   openEForm, closeEForm, saveExam, deleteExam, toggleExamVisibility, clearResults, exportCSV,
   updateQFormSubcat, updateEFormSubcat, renderQList, addParentCategory, deleteParentCategory,
-  addSubCategory, deleteSubCategory
+  addSubCategory, deleteSubCategory, restoreDefaultCategories
 });
 
 // Kích hoạt tiến trình tải và đồng bộ dữ liệu đám mây
