@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quiz Tin Học</title>
+<style>
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;min-height:100vh;display:flex;align-items:center;justify-content:center;margin:0}
+.card{background:#fff;border-radius:18px;padding:34px;box-shadow:0 2px 12px rgba(0,0,0,.08);border:1px solid #e9edf2;max-width:520px;width:calc(100% - 32px);text-align:center}
+.logo{font-size:26px;font-weight:800;margin-bottom:6px}.logo span{color:#1D9E75}
+.desc{color:#64748b;margin-bottom:24px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+a{display:block;text-decoration:none;border-radius:12px;padding:18px 14px;font-weight:700;border:1px solid #d1d5db;color:#374151;background:#fff}
+a.primary{background:#1D9E75;color:white;border-color:#1D9E75}
+a:hover{filter:brightness(.98)}
+@media(max-width:560px){.actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Quiz<span>TinHọc</span></div>
+    <div class="desc">Chọn khu vực sử dụng hệ thống</div>
+    <div class="actions">
+      <a class="primary" href="student.html">🎓 Vào trang Học viên</a>
+      <a href="teacher.html">👩‍🏫 Vào Quản trị viên</a>
+    </div>
+  </div>
+</body>
+</html>
