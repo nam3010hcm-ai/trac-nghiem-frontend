@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
       $('t-login').style.display = 'none';
       $('t-panel').style.display = 'block';
 
-      await initData();
+      await initData(true);
 
       populateCategoryDropdowns();
       updateFltSubcat();
