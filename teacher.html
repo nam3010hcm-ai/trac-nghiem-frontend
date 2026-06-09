@@ -102,6 +102,19 @@ window.MathJax = {
           <textarea id="qf-text" placeholder="Nhập câu hỏi..."></textarea>
         </div>
 
+        <div class="fg">
+          <label>Hình ảnh câu hỏi</label>
+          <input type="file" id="qf-image-file" accept="image/*">
+          <input id="qf-image" placeholder="URL hoặc Base64 ảnh">
+        </div>
+
+<div id="image-preview"></div>
+        
+        <div class="info-note">
+          Có thể gõ công thức Toán bằng LaTeX, ví dụ:
+          <b>$x^2 + 2x + 1$</b>, <b>\(\frac{a}{b}\)</b>
+        </div>
+
         <div class="grid2">
           <div class="fg" style="margin:0"><label>Đáp án A</label><input id="qf-a"/></div>
           <div class="fg" style="margin:0"><label>Đáp án B</label><input id="qf-b"/></div>
