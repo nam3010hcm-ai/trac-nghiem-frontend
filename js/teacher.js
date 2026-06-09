@@ -87,10 +87,33 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchTTab(btn.dataset.tab))
   );
 
-  $('flt-cat').addEventListener('change', updateFltSubcat);
+  $('flt-cat').addEventListener('change', () => {
+  updateFltSubcat();
+
+  const cat = $('flt-cat').value;
+  $('qf-cat').value = cat;
+  updateQFormSubcat();
+
+  const subcat = $('flt-subcat').value;
+  if (subcat) $('qf-subcat').value = subcat;
+  });
   $('qf-cat').addEventListener('change', updateQFormSubcat);
   $('ef-cat').addEventListener('change', updateEFormSubcat);
-  $('btn-filter-q').addEventListener('click', renderQuestions);
+  $('btn-filter-q').addEventListener('click', () => {
+  renderQuestions();
+
+  const cat = $('flt-cat').value;
+  const subcat = $('flt-subcat').value;
+
+  if (cat) {
+    $('qf-cat').value = cat;
+    updateQFormSubcat();
+  }
+
+  if (subcat) {
+    $('qf-subcat').value = subcat;
+  }
+  });
 
   $('btn-open-qform').addEventListener('click', () => {
   openQForm();
