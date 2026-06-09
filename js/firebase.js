@@ -10,6 +10,13 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyC0qFK22HSRMD76ss8UUqBnzIbNGfal56c",
   authDomain: "trac-nghiem-online-99801.firebaseapp.com",
@@ -22,5 +29,19 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-export { db, collection, getDocs, getDoc, addDoc, setDoc, doc, deleteDoc };
+export {
+  db,
+  auth,
+  collection,
+  getDocs,
+  getDoc,
+  addDoc,
+  setDoc,
+  doc,
+  deleteDoc,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+};
