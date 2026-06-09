@@ -123,7 +123,7 @@ function retake(){
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await initData();
+  await initData(false);
   populateExamSelect();
   $('s-exam').addEventListener('change', updateExamDesc);
   $('btn-start').addEventListener('click', startExam);
