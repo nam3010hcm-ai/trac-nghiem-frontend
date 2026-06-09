@@ -56,33 +56,59 @@ export function getPool(exam){
   return pool;
 }
 
-export async function initData(){
+export async function initData(loadResults = false){
   try{
     const catSnap = await getDoc(doc(db, "metadata", "categories"));
     if(!catSnap.exists() || Object.keys(catSnap.data()).length === 0){
       state.SUBCATS = clone(DEFAULT_SUBCATS);
       await setDoc(doc(db, "metadata", "categories"), state.SUBCATS);
-    } else state.SUBCATS = catSnap.data();
+    } else {
+      state.SUBCATS = catSnap.data();
+    }
 
     const qSnap = await getDocs(collection(db, "questions"));
     if(qSnap.empty){
-      for(const q of DEFAULT_QUESTIONS) await setDoc(doc(db, "questions", String(q.id)), q);
+      for(const q of DEFAULT_QUESTIONS) {
+        await setDoc(doc(db, "questions", String(q.id)), q);
+      }
       state.questions = DEFAULT_QUESTIONS.slice();
-    } else state.questions = qSnap.docs.map(d => d.data());
-    state.nextQId = Math.max(...state.questions.map(q => q.id), 99) + 1;
+    } else {
+      state.questions = qSnap.docs.map(d => d.data());
+    }
+
+    state.nextQId = state.questions.length
+      ? Math.max(...state.questions.map(q => q.id), 99) + 1
+      : 100;
 
     const eSnap = await getDocs(collection(db, "exams"));
     if(eSnap.empty){
-      for(const e of DEFAULT_EXAMS) await setDoc(doc(db, "exams", String(e.id)), e);
+      for(const e of DEFAULT_EXAMS) {
+        await setDoc(doc(db, "exams", String(e.id)), e);
+      }
       state.exams = DEFAULT_EXAMS.slice();
-    } else state.exams = eSnap.docs.map(d => d.data());
-    state.nextEId = Math.max(...state.exams.map(e => e.id), 9) + 1;
+    } else {
+      state.exams = eSnap.docs.map(d => d.data());
+    }
 
-    const rSnap = await getDocs(collection(db, "results"));
-    state.results = rSnap.docs.map(d => d.data()).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    state.nextEId = state.exams.length
+      ? Math.max(...state.exams.map(e => e.id), 9) + 1
+      : 10;
+
+    if(loadResults){
+      const rSnap = await getDocs(collection(db, "results"));
+      state.results = rSnap.docs
+        .map(d => d.data())
+        .sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    } else {
+      state.results = [];
+    }
+
   }catch(error){
     console.error("Lỗi kết nối database:", error);
     alert("Lỗi kết nối Firebase. Hãy kiểm tra API Key, Firestore Rules và Console.");
-    if(Object.keys(state.SUBCATS).length === 0) state.SUBCATS = clone(DEFAULT_SUBCATS);
+
+    if(Object.keys(state.SUBCATS).length === 0) {
+      state.SUBCATS = clone(DEFAULT_SUBCATS);
+    }
   }
 }
