@@ -21,4 +21,4 @@ Nếu báo lỗi kết nối Firebase, kiểm tra:
 3. Console của trình duyệt.
 4. Deploy lên Vercel hoặc chạy bằng Live Server, không nên mở trực tiếp file bằng `file://`.
 
-Mật khẩu quản trị mặc định: `gv2024`.
+Mật khẩu quản trị mặc định: 
