@@ -92,7 +92,21 @@ document.addEventListener('DOMContentLoaded', () => {
   $('ef-cat').addEventListener('change', updateEFormSubcat);
   $('btn-filter-q').addEventListener('click', renderQuestions);
 
-  $('btn-open-qform').addEventListener('click', () => openQForm());
+  $('btn-open-qform').addEventListener('click', () => {
+  openQForm();
+
+  const cat = $('flt-cat').value;
+  const subcat = $('flt-subcat').value;
+
+  if (cat) {
+    $('qf-cat').value = cat;
+    updateQFormSubcat();
+  }
+
+  if (subcat) {
+    $('qf-subcat').value = subcat;
+  }
+  });
   $('btn-close-qform').addEventListener('click', closeQForm);
   $('btn-save-q').addEventListener('click', saveQ);
 
