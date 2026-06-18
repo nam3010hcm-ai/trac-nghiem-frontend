@@ -87,43 +87,42 @@ document.addEventListener('DOMContentLoaded', () => {
   $('btn-logout').addEventListener('click', doLogout);
 
   onAuthStateChanged(auth, async user => {
-    if (user) {
-      if (user) {
-      $('t-login').style.display = 'none';
-      $('t-panel').style.display = 'block';
-    
-      if ($('current-user-email')) {
-        $('current-user-email').innerText =
-          user.email || 'Không xác định';
-      }
+  if (user) {
+    $('t-login').style.display = 'none';
+    $('t-panel').style.display = 'block';
 
-      await initData(true);
-
-      populateCategoryDropdowns();
-      updateFltSubcat();
-      updateQFormSubcat();
-      updateEFormSubcat();
-      populateExamSelect();
-
-      renderQuestions();
-      renderExams();
-      renderResults();
-      renderCatManagementList();
-    } else {
-      $('t-login').style.display = 'block';
-      $('t-panel').style.display = 'none';
-    
-      if ($('current-user-email')) {
-        $('current-user-email').innerText = '';
-      }
+    if ($('current-user-email')) {
+      $('current-user-email').innerText =
+        user.email || 'Không xác định';
     }
-  });
 
-  document.querySelectorAll('.tab-btn').forEach(btn =>
-    btn.addEventListener('click', () => switchTTab(btn.dataset.tab))
-  );
+    await initData(true);
 
-  $('flt-cat').addEventListener('change', () => {
+    populateCategoryDropdowns();
+    updateFltSubcat();
+    updateQFormSubcat();
+    updateEFormSubcat();
+    populateExamSelect();
+
+    renderQuestions();
+    renderExams();
+    renderResults();
+    renderCatManagementList();
+  } else {
+    $('t-login').style.display = 'block';
+    $('t-panel').style.display = 'none';
+
+    if ($('current-user-email')) {
+      $('current-user-email').innerText = '';
+    }
+  }
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn =>
+  btn.addEventListener('click', () => switchTTab(btn.dataset.tab))
+);
+
+$('flt-cat').addEventListener('change', () => {
   updateFltSubcat();
 
   const cat = $('flt-cat').value;
@@ -132,10 +131,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const subcat = $('flt-subcat').value;
   if (subcat) $('qf-subcat').value = subcat;
-  });
-  $('qf-cat').addEventListener('change', updateQFormSubcat);
-  $('ef-cat').addEventListener('change', updateEFormSubcat);
-  $('btn-filter-q').addEventListener('click', () => {
+});
+
+$('qf-cat').addEventListener('change', updateQFormSubcat);
+$('ef-cat').addEventListener('change', updateEFormSubcat);
+
+$('btn-filter-q').addEventListener('click', () => {
   renderQuestions();
 
   const cat = $('flt-cat').value;
@@ -149,9 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (subcat) {
     $('qf-subcat').value = subcat;
   }
-  });
+});
 
-  $('btn-open-qform').addEventListener('click', () => {
+$('btn-open-qform').addEventListener('click', () => {
   openQForm();
 
   const cat = $('flt-cat').value;
@@ -165,44 +166,49 @@ document.addEventListener('DOMContentLoaded', () => {
   if (subcat) {
     $('qf-subcat').value = subcat;
   }
-  });
-  $('btn-close-qform').addEventListener('click', closeQForm);
-  $('btn-save-q').addEventListener('click', saveQ);
+});
 
-  $('q-list').addEventListener('click', e => {
-    const btn = e.target.closest('.q-action');
-    if (!btn) return;
-    const id = parseInt(btn.dataset.id);
-    if (btn.dataset.action === 'edit') openQForm(id);
-    if (btn.dataset.action === 'delete') deleteQ(id);
-  });
+$('btn-close-qform').addEventListener('click', closeQForm);
+$('btn-save-q').addEventListener('click', saveQ);
 
-  $('btn-open-eform').addEventListener('click', openEForm);
-  $('btn-close-eform').addEventListener('click', closeEForm);
-  $('btn-save-exam').addEventListener('click', saveExam);
+$('q-list').addEventListener('click', e => {
+  const btn = e.target.closest('.q-action');
+  if (!btn) return;
 
-  $('e-list').addEventListener('click', e => {
-    const btn = e.target.closest('.e-action');
-    if (!btn) return;
-    const id = parseInt(btn.dataset.id);
-    if (btn.dataset.action === 'toggle') toggleExamVisibility(id);
-    if (btn.dataset.action === 'delete') deleteExam(id);
-  });
+  const id = parseInt(btn.dataset.id);
+  if (btn.dataset.action === 'edit') openQForm(id);
+  if (btn.dataset.action === 'delete') deleteQ(id);
+});
 
-  $('btn-add-parent').addEventListener('click', addParentCategory);
-  $('btn-add-sub').addEventListener('click', addSubCategory);
-  $('btn-restore').addEventListener('click', restoreDefaultCategories);
+$('btn-open-eform').addEventListener('click', openEForm);
+$('btn-close-eform').addEventListener('click', closeEForm);
+$('btn-save-exam').addEventListener('click', saveExam);
 
-  $('cat-management-list').addEventListener('click', e => {
-    const btn = e.target.closest('.cat-action');
-    if (!btn) return;
-    const parent = btn.dataset.parent;
-    const sub = btn.dataset.sub;
-    if (btn.dataset.action === 'delete-parent') deleteParentCategory(parent);
-    if (btn.dataset.action === 'edit-sub') editSubCategory(parent, sub);
-    if (btn.dataset.action === 'delete-sub') deleteSubCategory(parent, sub);
-  });
+$('e-list').addEventListener('click', e => {
+  const btn = e.target.closest('.e-action');
+  if (!btn) return;
 
-  $('btn-export').addEventListener('click', exportCSV);
-  $('btn-clear-results').addEventListener('click', clearResults);
+  const id = parseInt(btn.dataset.id);
+  if (btn.dataset.action === 'toggle') toggleExamVisibility(id);
+  if (btn.dataset.action === 'delete') deleteExam(id);
+});
+
+$('btn-add-parent').addEventListener('click', addParentCategory);
+$('btn-add-sub').addEventListener('click', addSubCategory);
+$('btn-restore').addEventListener('click', restoreDefaultCategories);
+
+$('cat-management-list').addEventListener('click', e => {
+  const btn = e.target.closest('.cat-action');
+  if (!btn) return;
+
+  const parent = btn.dataset.parent;
+  const sub = btn.dataset.sub;
+
+  if (btn.dataset.action === 'delete-parent') deleteParentCategory(parent);
+  if (btn.dataset.action === 'edit-sub') editSubCategory(parent, sub);
+  if (btn.dataset.action === 'delete-sub') deleteSubCategory(parent, sub);
+});
+
+$('btn-export').addEventListener('click', exportCSV);
+$('btn-clear-results').addEventListener('click', clearResults);
 });
