@@ -1,18 +1,25 @@
 <!DOCTYPE html>
 <html lang="vi">
-<script>
-window.MathJax = {
-  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
-  svg: { fontCache: 'global' }
-};
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Học viên - Quiz Tin Học</title>
 <link rel="stylesheet" href="css/style.css"/>
+
+<!-- MathJax: hiển thị công thức LaTeX trong câu hỏi và đáp án -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']]
+  },
+  svg: {
+    fontCache: 'global'
+  }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
+
 <body>
 <div class="header">
   <div class="logo">Quiz<span>TinHọc</span></div>
@@ -21,6 +28,7 @@ window.MathJax = {
     <a class="nav-btn" href="teacher.html">👩‍🏫 Quản trị viên</a>
   </div>
 </div>
+
 <div class="main">
   <div class="screen active" id="sc-home">
     <div class="card" style="max-width:460px;margin:30px auto">
@@ -29,25 +37,46 @@ window.MathJax = {
         <div style="font-size:22px;font-weight:700">Cổng Thi Trắc Nghiệm</div>
         <div style="font-size:14px;color:#6b7280;margin-top:4px">Tin học văn phòng cơ bản & nâng cao</div>
       </div>
-      <div class="fg"><label>Họ và tên *</label><input id="s-name" placeholder="Ví dụ: Trần Văn A"/></div>
-      <div class="fg"><label>Mã học viên / Chiến sĩ / MSSV</label><input id="s-id" placeholder="HV001"/></div>
-      <div class="fg"><label>Chọn đề thi *</label><select id="s-exam"></select></div>
+
+      <div class="fg">
+        <label>Họ và tên *</label>
+        <input id="s-name" placeholder="Ví dụ: Trần Văn A"/>
+      </div>
+
+      <div class="fg">
+        <label>Mã học viên / Chiến sĩ / MSSV</label>
+        <input id="s-id" placeholder="HV001"/>
+      </div>
+
+      <div class="fg">
+        <label>Chọn đề thi *</label>
+        <select id="s-exam"></select>
+      </div>
+
       <div id="s-exam-desc" style="font-size:12px;color:#6b7280;margin-bottom:13px;min-height:18px"></div>
+
       <button class="btn btn-p btn-full" id="btn-start">Bắt đầu làm bài →</button>
     </div>
   </div>
+
   <div class="screen" id="sc-quiz">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-size:13px;color:#6b7280;font-weight:500" id="q-progress">Câu 1/10</div>
       <div class="timer-badge" id="q-timer">⏱ 00:00</div>
     </div>
-    <div class="pbar"><div class="pfill" id="q-pbar" style="width:10%"></div></div>
+
+    <div class="pbar">
+      <div class="pfill" id="q-pbar" style="width:10%"></div>
+    </div>
+
     <div class="card">
       <div class="cat-badge" id="q-cat">Word</div>
       <div style="font-size:16px;font-weight:600;margin-bottom:20px;line-height:1.65" id="q-text">...</div>
+      <div id="q-image"></div>
       <div id="q-opts"></div>
       <div id="q-fb" style="display:none"></div>
     </div>
+
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
       <div style="font-size:13px;color:#6b7280;font-weight:500" id="q-live">Đúng: 0/0</div>
       <div>
@@ -56,18 +85,41 @@ window.MathJax = {
       </div>
     </div>
   </div>
+
   <div class="screen" id="sc-result">
     <div class="card">
-      <div class="score-circle" id="r-circle"><div class="score-num" id="r-score">0</div><div class="score-lbl">điểm/10</div></div>
+      <div class="score-circle" id="r-circle">
+        <div class="score-num" id="r-score">0</div>
+        <div class="score-lbl">điểm/10</div>
+      </div>
+
       <div style="text-align:center;font-size:20px;font-weight:700;margin-bottom:4px" id="r-name"></div>
       <div style="text-align:center;font-size:14px;color:#6b7280;margin-bottom:20px" id="r-msg"></div>
+
       <div class="stats">
-        <div class="stat"><div class="stat-n" id="r-cor" style="color:#1D9E75">0</div><div class="stat-l">Câu đúng</div></div>
-        <div class="stat"><div class="stat-n" id="r-wrg" style="color:#ef4444">0</div><div class="stat-l">Câu sai</div></div>
-        <div class="stat"><div class="stat-n" id="r-time">0s</div><div class="stat-l">Thời gian</div></div>
-        <div class="stat"><div class="stat-n" id="r-pct">0%</div><div class="stat-l">Tỷ lệ đúng</div></div>
+        <div class="stat">
+          <div class="stat-n" id="r-cor" style="color:#1D9E75">0</div>
+          <div class="stat-l">Câu đúng</div>
+        </div>
+        <div class="stat">
+          <div class="stat-n" id="r-wrg" style="color:#ef4444">0</div>
+          <div class="stat-l">Câu sai</div>
+        </div>
+        <div class="stat">
+          <div class="stat-n" id="r-time">0s</div>
+          <div class="stat-l">Thời gian</div>
+        </div>
+        <div class="stat">
+          <div class="stat-n" id="r-pct">0%</div>
+          <div class="stat-l">Tỷ lệ đúng</div>
+        </div>
       </div>
-      <details><summary>Xem lại đáp án chi tiết</summary><div id="r-review" style="margin-top:10px"></div></details>
+
+      <details>
+        <summary>Xem lại đáp án chi tiết</summary>
+        <div id="r-review" style="margin-top:10px"></div>
+      </details>
+
       <div style="display:flex;gap:10px;margin-top:18px">
         <button class="btn" style="flex:1" id="btn-home">← Về trang chủ</button>
         <button class="btn btn-p" style="flex:1" id="btn-retake">🔄 Thi lại đề này</button>
@@ -75,10 +127,7 @@ window.MathJax = {
     </div>
   </div>
 </div>
+
 <script type="module" src="js/student.js"></script>
 </body>
 </html>
-<script>
-  window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
