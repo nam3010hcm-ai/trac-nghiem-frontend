@@ -33,8 +33,28 @@ async function doLogin() {
 
 async function doLogout() {
   await signOut(auth);
+
   $('t-pass').value = '';
   $('t-err').style.display = 'none';
+
+  if ($('current-user-email')) {
+    $('current-user-email').innerText = '';
+  }
+}
+
+function togglePasswordVisibility() {
+  const passInput = $('t-pass');
+  const btn = $('btn-toggle-pass');
+
+  if (!passInput || !btn) return;
+
+  if (passInput.type === 'password') {
+    passInput.type = 'text';
+    btn.innerText = '🙈 Ẩn';
+  } else {
+    passInput.type = 'password';
+    btn.innerText = '👁 Hiện';
+  }
 }
 
 function switchTTab(t) {
@@ -49,6 +69,12 @@ function switchTTab(t) {
 
 document.addEventListener('DOMContentLoaded', () => {
   $('btn-login').addEventListener('click', doLogin);
+  if ($('btn-toggle-pass')) {
+  $('btn-toggle-pass').addEventListener(
+    'click',
+    togglePasswordVisibility
+  );
+}
 
   $('t-email').addEventListener('keydown', e => {
     if (e.key === 'Enter') doLogin();
@@ -62,8 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   onAuthStateChanged(auth, async user => {
     if (user) {
+      if (user) {
       $('t-login').style.display = 'none';
       $('t-panel').style.display = 'block';
+    
+      if ($('current-user-email')) {
+        $('current-user-email').innerText =
+          user.email || 'Không xác định';
+      }
 
       await initData(true);
 
@@ -80,6 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       $('t-login').style.display = 'block';
       $('t-panel').style.display = 'none';
+    
+      if ($('current-user-email')) {
+        $('current-user-email').innerText = '';
+      }
     }
   });
 
