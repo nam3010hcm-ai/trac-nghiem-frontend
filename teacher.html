@@ -1,5 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quản trị - Quiz Trắc nghiệm</title>
+<link rel="stylesheet" href="css/style.css"/>
+
 <script>
 window.MathJax = {
   tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
@@ -7,11 +13,6 @@ window.MathJax = {
 };
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Quản trị - Quiz Tin Học</title>
-<link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 <div class="header">
@@ -40,11 +41,10 @@ window.MathJax = {
 
     <div class="fg">
       <label>Mật khẩu</label>
-      <input
-        type="password"
-        id="t-pass"
-        placeholder="Nhập mật khẩu..."
-      />
+      <div class="password-row">
+        <input type="password" id="t-pass" placeholder="Nhập mật khẩu...">
+        <button type="button" id="btn-toggle-pass">👁 Hiện</button>
+      </div>
     </div>
 
     <div id="t-err" style="color:#dc2626;font-size:13px;margin-bottom:10px;display:none">
@@ -55,8 +55,13 @@ window.MathJax = {
   </div>
 
   <div id="t-panel" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-      <div style="font-size:18px;font-weight:700">Quản lý hệ thống</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:18px;font-weight:700">Quản lý hệ thống</div>
+        <div class="login-info">
+          Đang đăng nhập: <b id="current-user-email">...</b>
+        </div>
+      </div>
       <button class="btn btn-sm" id="btn-logout">🔒 Đăng xuất</button>
     </div>
 
@@ -273,7 +278,3 @@ window.MathJax = {
 <script type="module" src="js/teacher.js"></script>
 </body>
 </html>
-<script>
-  window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
