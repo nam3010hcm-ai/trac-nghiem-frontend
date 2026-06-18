@@ -1,20 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  getDocs,
-  getDoc,
-  addDoc,
-  setDoc,
-  doc,
-  deleteDoc
+  getFirestore, collection, getDocs, getDoc,
+  addDoc, setDoc, doc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
-
 import {
-  getAuth,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
+  getAuth, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -32,16 +23,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 export {
-  db,
-  auth,
-  collection,
-  getDocs,
-  getDoc,
-  addDoc,
-  setDoc,
-  doc,
-  deleteDoc,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
+  db, auth,
+  collection, getDocs, getDoc, addDoc, setDoc, doc, deleteDoc,
+  signInWithEmailAndPassword, signOut, onAuthStateChanged
 };
