@@ -223,21 +223,36 @@ $('btn-clear-results').addEventListener('click', clearResults);
 // ==========================================
 // QUẢN LÝ CA THI / LỚP HỌC (COHORTS)
 // ==========================================
+// Hàm hiển thị danh sách đề thi dạng Checkbox cho Form tạo Ca thi
+window.populateCohortExams = function() {
+    const container = document.getElementById("t-cohort-exams");
+    if (!container || !state.exams) return;
+    
+    if (state.exams.length === 0) {
+        container.innerHTML = '<div style="color:#ef4444; font-size:13px;">Chưa có đề thi nào trong hệ thống! Hãy tạo đề thi trước.</div>';
+        return;
+    }
+
+    container.innerHTML = state.exams.map(e => `
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:500; font-size:14px; cursor:pointer;">
+            <input type="checkbox" class="cohort-exam-cb" value="${e.id}"> 
+            ${e.name}
+        </label>
+    `).join('');
+};
 
 // 1. Hàm tải danh sách ca thi
 async function loadCohorts() {
     const tbody = document.getElementById("t-cohort-list");
-    if (!tbody) return; // Tránh lỗi nếu chưa load giao diện
+    if (!tbody) return;
 
     try {
-        // Lấy danh sách, sắp xếp theo thời gian tạo mới nhất lên đầu
         const q = query(collection(db, "cohorts"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
         
-        tbody.innerHTML = ""; // Xóa thông báo "Đang tải..."
-
+        tbody.innerHTML = "";
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 15px; color: #64748b;">Chưa có ca thi nào được tạo</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 15px;">Chưa có ca thi nào</td></tr>';
             return;
         }
 
@@ -246,17 +261,29 @@ async function loadCohorts() {
             const id = docSnap.id;
             const isActive = data.status === 'active';
             
+            // Format ngày tháng hiển thị
+            const sTime = data.startTime ? new Date(data.startTime).toLocaleString('vi-VN') : 'Không giới hạn';
+            const eTime = data.endTime ? new Date(data.endTime).toLocaleString('vi-VN') : 'Không giới hạn';
+            
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td style="font-weight: 500;">${data.name}</td>
+                <td>
+                    <div style="font-weight: 700; color:#1e293b;">${data.name}</div>
+                    <div style="font-size:12px; color:#64748b; margin-top:4px;">Từ: ${sTime}</div>
+                    <div style="font-size:12px; color:#64748b;">Đến: ${eTime}</div>
+                    <div style="font-size:12px; color:#10b981; font-weight:600; margin-top:4px;">
+                        Mã truy cập: <span style="background:#d1fae5; padding:2px 6px; border-radius:4px; color:#065f46;">${data.code}</span>
+                        <button onclick="window.changeCohortCode('${id}', '${data.code}')" style="border:none; background:none; cursor:pointer; color:#3b82f6; text-decoration:underline;">(Đổi mã)</button>
+                    </div>
+                </td>
                 <td>
                     <span style="color: ${isActive ? '#1D9E75' : '#ef4444'}; font-weight: 600; font-size: 13px;">
                         ${isActive ? 'Đang mở' : 'Đã đóng'}
                     </span>
                 </td>
-                <td style="display: flex; gap: 5px;">
+                <td style="display: flex; gap: 5px; flex-direction:column;">
                     <button class="btn" onclick="window.toggleCohort('${id}', '${data.status}')" style="padding: 4px 10px; font-size: 12px; background: #f1f5f9; color: #334155;">
-                        ${isActive ? 'Đóng ca thi' : 'Mở lại'}
+                        ${isActive ? 'Khóa ca thi' : 'Mở lại'}
                     </button>
                     <button class="btn" onclick="window.deleteCohort('${id}')" style="padding: 4px 10px; font-size: 12px; background: #fee2e2; color: #ef4444;">
                         Xóa
@@ -267,7 +294,6 @@ async function loadCohorts() {
         });
     } catch (error) {
         console.error("Lỗi tải danh sách ca thi:", error);
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: #ef4444; padding: 15px;">Lỗi tải dữ liệu! Vui lòng F5 lại trang.</td></tr>';
     }
 }
 
@@ -275,59 +301,79 @@ async function loadCohorts() {
 const btnAddCohort = document.getElementById("btn-add-cohort");
 if (btnAddCohort) {
     btnAddCohort.addEventListener("click", async () => {
-        const input = document.getElementById("t-cohort-name");
-        const name = input.value.trim();
+        const name = document.getElementById("t-cohort-name").value.trim();
+        let code = document.getElementById("t-cohort-code").value.trim();
+        const startTime = document.getElementById("t-cohort-start").value;
+        const endTime = document.getElementById("t-cohort-end").value;
         
-        if (!name) {
-            alert("Vui lòng nhập tên ca thi (VD: Lớp TH 1 - Sáng Thứ 3)!");
-            input.focus();
-            return;
-        }
-        
-        // Hiệu ứng loading nút bấm
+        // Lấy danh sách ID các đề thi được check
+        const checkedExams = Array.from(document.querySelectorAll('.cohort-exam-cb:checked')).map(cb => parseInt(cb.value));
+
+        if (!name) { alert("Vui lòng nhập tên ca thi!"); return; }
+        if (!startTime || !endTime) { alert("Vui lòng chọn thời gian bắt đầu và kết thúc!"); return; }
+        if (new Date(startTime) >= new Date(endTime)) { alert("Thời gian kết thúc phải lớn hơn thời gian bắt đầu!"); return; }
+        if (checkedExams.length === 0) { alert("Vui lòng chọn ít nhất 1 đề thi cho ca này!"); return; }
+
+        // Tự tạo mã 6 ký tự nếu giáo viên để trống
+        if (!code) code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
         btnAddCohort.disabled = true;
-        btnAddCohort.textContent = "Đang thêm...";
+        btnAddCohort.textContent = "Đang tạo...";
         
         try {
             await addDoc(collection(db, "cohorts"), {
                 name: name,
-                status: "active", // Mặc định mở
+                code: code,
+                startTime: startTime, // Lưu định dạng ISO
+                endTime: endTime,
+                allowedExams: checkedExams, // Mảng ID đề thi
+                status: "active",
                 createdAt: Date.now()
             });
-            input.value = ""; // Xóa trắng ô nhập
-            loadCohorts();    // Cập nhật lại bảng ngay lập tức
+            
+            // Reset Form
+            document.getElementById("t-cohort-name").value = "";
+            document.getElementById("t-cohort-code").value = "";
+            document.getElementById("t-cohort-start").value = "";
+            document.getElementById("t-cohort-end").value = "";
+            document.querySelectorAll('.cohort-exam-cb').forEach(cb => cb.checked = false);
+            
+            loadCohorts(); 
+            alert(`Tạo ca thi thành công!\nMã truy cập cho học viên là: ${code}`);
         } catch (error) {
-            console.error("Lỗi khi thêm ca thi:", error);
-            alert("Lỗi khi thêm ca thi! Xem console để biết chi tiết.");
+            console.error("Lỗi tạo ca thi:", error);
         } finally {
-            // Trả lại trạng thái nút bấm
             btnAddCohort.disabled = false;
-            btnAddCohort.textContent = "Thêm Ca thi";
+            btnAddCohort.textContent = "✅ Tạo Ca thi";
         }
     });
 }
 
-// 3. Hàm bật/tắt (Đóng/Mở) ca thi
-window.toggleCohort = async (id, currentStatus) => {
-    const newStatus = currentStatus === "active" ? "closed" : "active";
-    try {
-        await updateDoc(doc(db, "cohorts", id), { status: newStatus });
-        loadCohorts();
-    } catch (error) {
-        console.error("Lỗi khi cập nhật trạng thái:", error);
-        alert("Không thể đổi trạng thái. Vui lòng thử lại!");
+// 3. Hàm đổi mã bảo mật
+window.changeCohortCode = async (id, oldCode) => {
+    const newCode = prompt(`Nhập mã truy cập mới (Mã hiện tại: ${oldCode}):`, oldCode);
+    if (newCode && newCode.trim() !== oldCode) {
+        try {
+            await updateDoc(doc(db, "cohorts", id), { code: newCode.trim().toUpperCase() });
+            loadCohorts();
+            alert("Đã đổi mã bảo mật thành công!");
+        } catch (error) {
+            console.error(error);
+            alert("Lỗi khi đổi mã!");
+        }
     }
 };
 
-// 4. Hàm xóa ca thi
+// 4. Bật tắt ca thi và Xóa (giữ nguyên logic cũ)
+window.toggleCohort = async (id, currentStatus) => {
+    const newStatus = currentStatus === "active" ? "closed" : "active";
+    await updateDoc(doc(db, "cohorts", id), { status: newStatus });
+    loadCohorts();
+};
+
 window.deleteCohort = async (id) => {
-    if (confirm("Xóa ca thi này?\nLưu ý: Điểm của những sinh viên đã thi trong ca này vẫn được giữ nguyên an toàn trong bảng kết quả.")) {
-        try {
-            await deleteDoc(doc(db, "cohorts", id));
-            loadCohorts();
-        } catch (error) {
-            console.error("Lỗi khi xóa ca thi:", error);
-            alert("Không thể xóa ca thi. Vui lòng thử lại!");
-        }
+    if (confirm("Xóa ca thi này? Điểm của học viên đã thi sẽ KHÔNG bị mất.")) {
+        await deleteDoc(doc(db, "cohorts", id));
+        loadCohorts();
     }
 };
