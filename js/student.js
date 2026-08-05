@@ -19,10 +19,16 @@ function clearPersist(){ localStorage.removeItem(STORE_KEY); }
 
 function showStudentBadge(){
   const s = qState.student;
+  const exam = qState.exam;
   if(!s) return;
-  // Bổ sung thêm Tên ca thi vào huy hiệu hiển thị khi làm bài
-  const cohortText = s.cohort ? ` — Lớp: ${s.cohort}` : '';
-  $('q-student').textContent = s.id ? `${s.name} — Mã: ${s.id}${cohortText}` : `${s.name}${cohortText}`;
+  
+  // Định dạng hiển thị: Mã học viên - Tên học viên - Ca thi - Đề thi
+  const maHV = s.id ? s.id : '';
+  const tenHV = s.name ? s.name : '';
+  const caThi = s.cohort ? s.cohort : '';
+  const deThi = exam ? exam.name : '';
+
+  $('q-student').textContent = `${maHV} - ${tenHV} - ${caThi} - ${deThi}`;
 }
 
 // ==========================================
@@ -114,10 +120,25 @@ function startExam(){
   if(!qs.length){ alert('Đề thi chưa có câu hỏi phù hợp!'); return; }
   
   // LƯU THÊM COHORT VÀO qState
-  qState = { exam, student:{name, id:$('s-id').value.trim(), cohort}, qs, idx:0, answers:[], startTime:Date.now(), timer:null };
+  // LƯU THÊM COHORT VÀO qState BẰNG BIẾN CHỮ cohortName
+  qState = { 
+      exam, 
+      student: {
+          name: name, 
+          id: $('s-id').value.trim(), 
+          cohort: cohortName // <-- Điểm cốt lõi sửa lỗi [object Object]
+      }, 
+      qs, 
+      idx: 0, 
+      answers: [], 
+      startTime: Date.now(), 
+      timer: null 
+  };
   
   persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
 }
+  //
+  
 
 function startTimer(){
   clearInterval(qState.timer);
