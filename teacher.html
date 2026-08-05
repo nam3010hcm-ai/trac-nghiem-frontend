@@ -16,7 +16,7 @@ window.MathJax = {
 </head>
 <body>
 <div class="header">
-  <div class="logo">Quiz<span>TinHọc</span></div>
+  <div class="logo">Quiz<span> Trắc Nghiệm </span></div>
   <div class="nav">
     <a class="nav-btn" href="student.html">🎓 Học viên</a>
     <a class="nav-btn active" href="teacher.html">👩‍🏫 Quản trị viên</a>
@@ -326,13 +326,40 @@ window.MathJax = {
             <!-- Form thêm ca thi -->
             <div class="card" style="margin-bottom: 20px; padding: 16px;">
                 <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:#475569">
-                    ➕ THÊM CA THI MỚI
+                    ➕ TẠO CA THI BẢO MẬT
                 </div>
-                <div class="fg">
-                    <label>Tên Ca thi</label>
-                    <input id="t-cohort-name" placeholder="Ví dụ: Ca 1 - Sáng 20/10..."/>
+                
+                <div class="grid2">
+                    <div class="fg" style="margin:0">
+                        <label>Tên Ca thi</label>
+                        <input id="t-cohort-name" placeholder="VD: Ca 1 - Sáng 20/10..."/>
+                    </div>
+                    <div class="fg" style="margin:0">
+                        <label>Mã truy cập (Để trống sẽ tự tạo)</label>
+                        <input id="t-cohort-code" placeholder="VD: K6A2B"/>
+                    </div>
                 </div>
-                <button class="btn btn-p btn-full" id="btn-add-cohort">Thêm Ca thi</button>
+            
+                <div class="grid2" style="margin-top:14px">
+                    <div class="fg" style="margin:0">
+                        <label>Thời gian mở phòng thi</label>
+                        <input type="datetime-local" id="t-cohort-start"/>
+                    </div>
+                    <div class="fg" style="margin:0">
+                        <label>Thời gian đóng phòng thi</label>
+                        <input type="datetime-local" id="t-cohort-end"/>
+                    </div>
+                </div>
+            
+                <div class="fg" style="margin-top:14px">
+                    <label>Chọn các Đề thi được phép làm trong ca này</label>
+                    <div id="t-cohort-exams" style="border:1.5px solid #e5e7eb; border-radius:8px; padding:10px; max-height:150px; overflow-y:auto; background:#f8fafc;">
+                        <!-- Danh sách đề thi sẽ được load bằng JS vào đây -->
+                        <div style="color:#64748b; font-size:13px;">Đang tải danh sách đề thi...</div>
+                    </div>
+                </div>
+            
+                <button class="btn btn-p btn-full" id="btn-add-cohort" style="margin-top:10px;">✅ Tạo Ca thi</button>
             </div>
 
             <!-- Bảng danh sách ca thi -->
