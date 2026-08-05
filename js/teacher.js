@@ -238,16 +238,49 @@ window.populateCohortExams = function() {
         return;
     }
 
-    if (state.exams.length === 0) {
-        container.innerHTML = '<div style="color:#ef4444; font-size:13px;">Chưa có đề thi nào trong hệ thống! Hãy qua tab "Đề thi" để tạo mới.</div>';
+    // 1. LỌC ĐỀ THI: Chỉ lấy những đề KHÔNG BỊ ẨN
+    // (Kiểm tra thuộc tính hidden, nếu e.hidden là true thì bỏ qua)
+    const visibleExams = state.exams.filter(e => !e.hidden);
+
+    if (visibleExams.length === 0) {
+        container.innerHTML = '<div style="color:#64748b; font-size:13px; text-align:center; padding: 10px;">Không có đề thi nào đang ở chế độ HIỆN!</div>';
         return;
     }
 
-    // Vẽ danh sách checkbox
-    container.innerHTML = state.exams.map(e => `
-        <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:500; font-size:14px; cursor:pointer;">
-            <input type="checkbox" class="cohort-exam-cb" value="${e.id}"> 
-            ${e.name}
+    // 2. RENDER GIAO DIỆN MỚI (Đã fix lỗi CSS)
+    container.innerHTML = visibleExams.map(e => `
+        <label style="
+            display: flex !important; 
+            justify-content: flex-start !important; 
+            align-items: center !important; 
+            text-align: left !important; 
+            gap: 12px; 
+            margin-bottom: 8px; 
+            padding: 10px 12px; 
+            background: #ffffff; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            width: 100%; 
+            box-sizing: border-box;
+            transition: all 0.2s;
+        ">
+            <input type="checkbox" class="cohort-exam-cb" value="${e.id}" style="
+                margin: 0 !important; 
+                width: 18px !important; 
+                height: 18px !important; 
+                flex-shrink: 0; 
+                cursor: pointer;
+            "> 
+            <span style="
+                font-weight: 500; 
+                font-size: 14px; 
+                color: #334155; 
+                word-break: break-word;
+                line-height: 1.4;
+            ">
+                ${e.name}
+            </span>
         </label>
     `).join('');
 };
