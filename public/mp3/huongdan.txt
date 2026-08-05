@@ -1,0 +1,33 @@
+Dưới đây là cách thực hiện với kho lưu trữ trac-nghiem-frontend:
+
+Bước 1: Đổi tên file MP3 (Rất quan trọng)
+Khi đưa file lên môi trường web, bạn tuyệt đối không nên để tên file có dấu tiếng Việt và dấu cách để tránh lỗi đường dẫn.
+
+Hãy đổi tên file "Đề 1 - Nghe.mp3" thành de-1-nghe.mp3.
+
+Bước 2: Upload file vào thư mục public trên GitHub
+
+Truy cập vào kho mã nguồn của bạn trên GitHub: nam3010hcm-ai/trac-nghiem-frontend.
+
+Kiểm tra xem đã có thư mục tên là public chưa.
+
+Nếu dùng Next.js/React/Vite: Thư mục public thường nằm ở ngoài cùng.
+
+Nếu chưa có: Bạn hãy tạo một thư mục tên là public, bên trong tạo tiếp thư mục mp3.
+
+Tải file de-1-nghe.mp3 vào thư mục đó. Cấu trúc chuẩn sẽ là: public/mp3/de-1-nghe.mp3.
+
+Commit (lưu) thay đổi này lên nhánh main.
+
+Bước 3: Chờ Vercel đồng bộ
+Ngay khi bạn đưa file lên GitHub, dự án tracnghiem-k7 trên Vercel sẽ tự động nhận diện có thay đổi mới và tiến hành deploy lại. Bạn chỉ cần chờ khoảng 1-2 phút cho quá trình này hoàn tất.
+
+Bước 4: Chèn link vào trang soạn thảo đề thi
+Quay lại trang tạo câu hỏi, ở ô AUDIO (CHO CÂU NGHE - LISTENING, KHÔNG BẮT BUỘC), bạn điền đường dẫn theo cấu trúc tên miền Vercel của bạn.
+
+Ví dụ, nếu trang web của bạn đang chạy ở tên miền [https://tracnghiem-k7.vercel.app](https://tracnghiem-k7.vercel.app), thì đường link chính xác để dán vào ô đó sẽ là:
+[https://tracnghiem-k7.vercel.app/mp3/de-1-nghe.mp3](https://tracnghiem-k7.vercel.app/mp3/de-1-nghe.mp3)
+
+(Lưu ý: Không bao gồm chữ public trong đường link, vì Vercel tự động hiểu nội dung trong thư mục đó là file gốc của website).
+
+Cách này vừa hoàn toàn miễn phí, quản lý file tập trung ngay trong mã nguồn, lại vừa giải quyết triệt để vấn đề quá tải khi có nhiều học sinh cùng thi.
