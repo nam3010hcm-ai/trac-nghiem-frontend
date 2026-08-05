@@ -117,6 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderResults();
     renderCatManagementList();
     loadCohorts(); // THÊM DÒNG NÀY ĐỂ HIỂN THỊ CA THI KHI VỪA ĐĂNG NHẬP
+    window.populateCohortExams(); // THÊM DÒNG NÀY VÀO ĐÂY LÀ XONG!
+
   } else {
     $('t-login').style.display = 'block';
     $('t-panel').style.display = 'none';
@@ -228,13 +230,20 @@ $('btn-clear-results').addEventListener('click', clearResults);
 // Hàm hiển thị danh sách đề thi dạng Checkbox cho Form tạo Ca thi
 window.populateCohortExams = function() {
     const container = document.getElementById("t-cohort-exams");
-    if (!container || !state.exams) return;
+    if (!container) return;
     
-    if (state.exams.length === 0) {
-        container.innerHTML = '<div style="color:#ef4444; font-size:13px;">Chưa có đề thi nào trong hệ thống! Hãy tạo đề thi trước.</div>';
+    // Kiểm tra xem dữ liệu đề thi đã được tải về chưa
+    if (typeof state === 'undefined' || !state.exams) {
+        container.innerHTML = '<div style="color:#ef4444; font-size:13px;">Lỗi: Chưa tải được dữ liệu đề thi. Vui lòng F5 lại trang!</div>';
         return;
     }
 
+    if (state.exams.length === 0) {
+        container.innerHTML = '<div style="color:#ef4444; font-size:13px;">Chưa có đề thi nào trong hệ thống! Hãy qua tab "Đề thi" để tạo mới.</div>';
+        return;
+    }
+
+    // Vẽ danh sách checkbox
     container.innerHTML = state.exams.map(e => `
         <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:500; font-size:14px; cursor:pointer;">
             <input type="checkbox" class="cohort-exam-cb" value="${e.id}"> 
