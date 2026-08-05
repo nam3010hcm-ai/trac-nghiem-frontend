@@ -1,0 +1,410 @@
+import { initData, state, $, KEYS, shuffle, getPool, esc, mediaHTML, audioHTML, renderRich, typesetMath, isCorrect, formatAnswer, splitBlanks } from './common.js';
+import { populateExamSelect, updateExamDesc } from './exams.js';
+import { saveResult } from './results.js';
+
+let qState = {};
+const STORE_KEY = 'quiz_current_attempt_v2';
+let multiSelected = new Set();   // lựa chọn tạm thời của câu mcq_multi, trước khi bấm "Xác nhận"
+let dragSelectedBankIdx = null;  // chip đang được chọn trong ngân hàng từ (kéo-thả)
+let matchSelectedLeft = null;    // mục cột trái đang được chọn (ghép cặp)
+let matchPairs = {};             // leftIdx -> rightOrigIdx (ghép cặp)
+
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); $(id).classList.add('active'); }
+function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({...qState, timer:null})); }catch{} }
+function clearPersist(){ localStorage.removeItem(STORE_KEY); }
+
+function showStudentBadge(){
+  const s = qState.student;
+  if(!s) return;
+  $('q-student').textContent = s.id ? `${s.name} — Mã: ${s.id}` : s.name;
+}
+
+function startExam(){
+  const name = $('s-name').value.trim();
+  if(!name){ alert('Vui lòng nhập họ tên!'); return; }
+  const eid = parseInt($('s-exam').value);
+  const exam = state.exams.find(e => e.id === eid);
+  if(!exam){ alert('Không tìm thấy đề thi hoặc chưa chọn đề!'); return; }
+  const pool = getPool(exam);
+  const qs = shuffle(pool).slice(0, Math.min(exam.count, pool.length));
+  if(!qs.length){ alert('Đề thi chưa có câu hỏi phù hợp!'); return; }
+  qState = { exam, student:{name, id:$('s-id').value.trim()}, qs, idx:0, answers:[], startTime:Date.now(), timer:null };
+  persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
+}
+
+function startTimer(){
+  clearInterval(qState.timer);
+  const tl = (qState.exam.timeLimit || 0) * 60;
+  qState.timer = setInterval(() => {
+    const el = Math.floor((Date.now() - qState.startTime) / 1000);
+    const t = $('q-timer');
+    if(tl > 0){
+      const rem = tl - el;
+      if(rem <= 0){ finishExam(); return; }
+      const m = Math.floor(rem/60), s = rem % 60;
+      t.textContent = `⏱ ${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
+    }else{
+      const m = Math.floor(el/60), s = el % 60;
+      t.textContent = `⏱ ${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
+    }
+  }, 1000);
+}
+
+function renderMCQSingle(q){
+  $('q-opts').innerHTML = (q.opts || []).map((o,i)=>`
+    <button class="opt answer-btn" data-idx="${i}">
+      <span class="okey">${KEYS[i]}</span>
+      <span>${renderRich(o)}</span>
+    </button>`).join('');
+}
+
+function renderMCQMulti(q){
+  $('q-opts').innerHTML = (q.opts || []).map((o,i)=>`
+    <button class="opt answer-btn multi" data-idx="${i}">
+      <span class="okey">${KEYS[i]}</span>
+      <span>${renderRich(o)}</span>
+    </button>`).join('') +
+    `<div style="font-size:12px;color:#6b7280;margin:4px 0 10px">Có thể chọn nhiều đáp án đúng.</div>
+    <button class="btn btn-p btn-full" id="btn-confirm-multi">Xác nhận đáp án</button>`;
+}
+
+function renderFillBlank(q){
+  const parts = splitBlanks(q.text);
+  let html = '<div class="fillblank-sentence">';
+  parts.forEach((seg,i) => {
+    html += renderRich(seg);
+    if(i < parts.length - 1){
+      html += `<input class="blank-input" data-idx="${i}" type="text" autocomplete="off" placeholder="...">`;
+    }
+  });
+  html += '</div><button class="btn btn-p btn-full" id="btn-confirm-fill" style="margin-top:16px">Xác nhận đáp án</button>';
+  $('q-opts').innerHTML = html;
+}
+
+function renderDragDrop(q){
+  const parts = splitBlanks(q.text);
+  let sentence = '<div class="fillblank-sentence">';
+  parts.forEach((seg,i) => {
+    sentence += renderRich(seg);
+    if(i < parts.length - 1){
+      sentence += `<button type="button" class="drop-slot" data-idx="${i}" data-filled=""></button>`;
+    }
+  });
+  sentence += '</div>';
+  const bankHTML = '<div class="word-bank">' + (q.bank || []).map((w,i) =>
+    `<button type="button" class="bank-chip" data-bank-idx="${i}">${renderRich(w)}</button>`).join('') + '</div>';
+  $('q-opts').innerHTML = sentence + bankHTML +
+    '<button class="btn btn-p btn-full" id="btn-confirm-drag" style="margin-top:16px">Xác nhận đáp án</button>';
+}
+
+function renderMatching(q){
+  const pairs = q.pairs || [];
+  const rightShuffled = shuffle(pairs.map((p,i) => ({text:p.right, orig:i})));
+  const leftHTML = pairs.map((p,i) =>
+    `<button type="button" class="match-item match-left" data-idx="${i}">${renderRich(p.left)}</button>`).join('');
+  const rightHTML = rightShuffled.map(r =>
+    `<button type="button" class="match-item match-right" data-orig="${r.orig}">${renderRich(r.text)}</button>`).join('');
+  $('q-opts').innerHTML = `
+    <div style="font-size:12px;color:#6b7280;margin-bottom:10px">Chạm 1 mục bên trái rồi chạm mục tương ứng bên phải để ghép. Chạm lại để hủy ghép.</div>
+    <div class="match-cols">
+      <div class="match-col">${leftHTML}</div>
+      <div class="match-col">${rightHTML}</div>
+    </div>
+    <button class="btn btn-p btn-full" id="btn-confirm-match" style="margin-top:16px">Xác nhận đáp án</button>`;
+}
+
+function renderQ(){
+  const {qs, idx} = qState;
+  const q = qs[idx];
+  const type = q.type || 'mcq_single';
+  multiSelected = new Set();
+  dragSelectedBankIdx = null;
+  matchSelectedLeft = null;
+  matchPairs = {};
+
+  $('q-progress').textContent = `Câu ${idx+1}/${qs.length}`;
+  $('q-pbar').style.width = `${(idx+1)/qs.length*100}%`;
+  $('q-cat').textContent = q.subcat || q.cat || '';
+  const cor = qState.answers.filter((a,i)=>isCorrect(qs[i], a)).length;
+  $('q-live').textContent = `Đúng: ${cor}/${idx}`;
+  $('q-fb').style.display = 'none';
+  $('btn-next').style.display = 'none';
+  $('btn-finish').style.display = 'none';
+
+  if(type === 'fill_blank'){
+    $('q-text').innerHTML = `<div style="font-weight:600;margin-bottom:4px">✏️ Điền vào chỗ trống:</div>${mediaHTML(q.image)}${audioHTML(q.audio)}`;
+    renderFillBlank(q);
+  }else if(type === 'drag_drop'){
+    $('q-text').innerHTML = `<div style="font-weight:600;margin-bottom:4px">🧩 Kéo-thả từ đúng vào chỗ trống:</div>${mediaHTML(q.image)}${audioHTML(q.audio)}`;
+    renderDragDrop(q);
+  }else if(type === 'matching'){
+    $('q-text').innerHTML = `<div style="font-weight:600;margin-bottom:4px">🔗 Ghép các cặp tương ứng:</div>${mediaHTML(q.image)}${audioHTML(q.audio)}`;
+    renderMatching(q);
+  }else{
+    $('q-text').innerHTML = `<div>${renderRich(q.text)}</div>${mediaHTML(q.image)}${audioHTML(q.audio)}`;
+    if(type === 'mcq_multi') renderMCQMulti(q);
+    else renderMCQSingle(q);
+  }
+  typesetMath($('sc-quiz'));
+}
+
+function lockAndShowFeedback(q, userAns){
+  qState.answers[qState.idx] = userAns;
+  persist();
+  const ok = isCorrect(q, userAns);
+  const fb = $('q-fb');
+  fb.style.display = 'block';
+  fb.className = 'fb ' + (ok ? 'fb-ok' : 'fb-bad');
+  fb.innerHTML = ok ? '✅ Chính xác!' : `❌ Chưa đúng! Đáp án đúng: ${formatAnswer(q, null, true)}`;
+  const cor = qState.answers.filter((a,i)=>isCorrect(qState.qs[i], a)).length;
+  $('q-live').textContent = `Đúng: ${cor}/${qState.idx+1}`;
+  if(qState.idx + 1 < qState.qs.length) $('btn-next').style.display = 'inline-block';
+  else $('btn-finish').style.display = 'inline-block';
+  typesetMath(fb);
+}
+
+function selectAnsSingle(idx){
+  const q = qState.qs[qState.idx];
+  const btns = document.querySelectorAll('.opt');
+  btns.forEach(b => b.disabled = true);
+  btns[idx].classList.add(idx === q.ans ? 'correct' : 'wrong');
+  if(idx !== q.ans) btns[q.ans].classList.add('correct');
+  lockAndShowFeedback(q, idx);
+}
+
+function toggleMulti(btn, idx){
+  btn.classList.toggle('selected');
+  if(multiSelected.has(idx)) multiSelected.delete(idx); else multiSelected.add(idx);
+}
+
+function confirmMulti(){
+  const q = qState.qs[qState.idx];
+  const chosen = Array.from(multiSelected).sort((a,b)=>a-b);
+  const btns = document.querySelectorAll('.opt.multi');
+  btns.forEach((b,i) => {
+    b.disabled = true;
+    const isRight = (q.ans || []).includes(i);
+    const isChosen = chosen.includes(i);
+    if(isRight) b.classList.add('correct');
+    else if(isChosen) b.classList.add('wrong');
+  });
+  $('btn-confirm-multi')?.remove();
+  lockAndShowFeedback(q, chosen);
+}
+
+function confirmFillBlank(){
+  const q = qState.qs[qState.idx];
+  const inputs = Array.from(document.querySelectorAll('.blank-input'));
+  const vals = inputs.map(i => i.value.trim());
+  inputs.forEach((inp,i) => {
+    inp.disabled = true;
+    const accepted = String(q.blanks?.[i] || '').split('|').map(s => s.trim().toLowerCase());
+    inp.classList.add(accepted.includes(inp.value.trim().toLowerCase()) ? 'correct' : 'wrong');
+  });
+  $('btn-confirm-fill')?.remove();
+  lockAndShowFeedback(q, vals);
+}
+
+// --- Kéo-thả (tap-to-place) ---
+function selectBankChip(chip, idx){
+  document.querySelectorAll('.bank-chip.selected').forEach(c => c.classList.remove('selected'));
+  if(dragSelectedBankIdx === idx){ dragSelectedBankIdx = null; return; } // bấm lại để bỏ chọn
+  chip.classList.add('selected');
+  dragSelectedBankIdx = idx;
+}
+
+function placeInSlot(slot){
+  const q = qState.qs[qState.idx];
+  const idx = parseInt(slot.dataset.idx);
+  if(slot.dataset.filled !== ''){
+    // ô đã có từ -> chạm lại để trả từ về ngân hàng
+    const bankIdx = slot.dataset.filled;
+    const chip = document.querySelector(`.bank-chip[data-bank-idx="${bankIdx}"]`);
+    if(chip){ chip.disabled = false; chip.classList.remove('used'); }
+    slot.textContent = '';
+    slot.dataset.filled = '';
+    return;
+  }
+  if(dragSelectedBankIdx === null) return;
+  const chip = document.querySelector(`.bank-chip[data-bank-idx="${dragSelectedBankIdx}"]`);
+  if(!chip || chip.disabled) return;
+  slot.textContent = q.bank[dragSelectedBankIdx];
+  slot.dataset.filled = String(dragSelectedBankIdx);
+  chip.disabled = true;
+  chip.classList.add('used');
+  chip.classList.remove('selected');
+  dragSelectedBankIdx = null;
+}
+
+function confirmDragDrop(){
+  const q = qState.qs[qState.idx];
+  const slots = Array.from(document.querySelectorAll('.drop-slot'));
+  const vals = slots.map(s => s.dataset.filled !== '' ? q.bank[parseInt(s.dataset.filled)] : '');
+  slots.forEach((s,i) => {
+    s.disabled = true;
+    const accepted = String(q.blanks?.[i] || '').split('|').map(v => v.trim().toLowerCase());
+    s.classList.add(accepted.includes((vals[i] || '').trim().toLowerCase()) ? 'correct' : 'wrong');
+  });
+  document.querySelectorAll('.bank-chip').forEach(c => c.disabled = true);
+  $('btn-confirm-drag')?.remove();
+  lockAndShowFeedback(q, vals);
+}
+
+// --- Ghép cặp ---
+function clearMatchSelection(){
+  document.querySelectorAll('.match-left.selected').forEach(b => b.classList.remove('selected'));
+  matchSelectedLeft = null;
+}
+function unpairByLeft(leftIdx){
+  const rightOrig = matchPairs[leftIdx];
+  delete matchPairs[leftIdx];
+  const leftBtn = document.querySelector(`.match-left[data-idx="${leftIdx}"]`);
+  const rightBtn = document.querySelector(`.match-right[data-orig="${rightOrig}"]`);
+  [leftBtn, rightBtn].forEach(b => { if(b){ b.classList.remove('paired'); b.querySelector('.match-badge')?.remove(); } });
+}
+function pairSelection(leftIdx, rightOrig){
+  matchPairs[leftIdx] = rightOrig;
+  const leftBtn = document.querySelector(`.match-left[data-idx="${leftIdx}"]`);
+  const rightBtn = document.querySelector(`.match-right[data-orig="${rightOrig}"]`);
+  [leftBtn, rightBtn].forEach(b => { if(b) b.classList.add('paired'); });
+  const badge = `<span class="match-badge">${leftIdx+1}</span>`;
+  if(leftBtn) leftBtn.insertAdjacentHTML('afterbegin', badge);
+  if(rightBtn) rightBtn.insertAdjacentHTML('afterbegin', badge);
+}
+function confirmMatching(){
+  const q = qState.qs[qState.idx];
+  const n = (q.pairs || []).length;
+  const answer = Array.from({length:n}).map((_,i) => matchPairs[i] !== undefined ? matchPairs[i] : -1);
+  document.querySelectorAll('.match-left').forEach((b,i) => {
+    b.disabled = true;
+    b.classList.add(matchPairs[i] === i ? 'correct' : 'wrong');
+  });
+  document.querySelectorAll('.match-right').forEach(b => {
+    b.disabled = true;
+    const orig = parseInt(b.dataset.orig);
+    const leftIdx = Object.keys(matchPairs).find(k => matchPairs[k] === orig);
+    if(leftIdx !== undefined) b.classList.add(parseInt(leftIdx) === orig ? 'correct' : 'wrong');
+  });
+  $('btn-confirm-match')?.remove();
+  lockAndShowFeedback(q, answer);
+}
+
+function nextQ(){ qState.idx++; persist(); renderQ(); }
+
+async function finishExam(){
+  if(!qState.qs) return;
+  clearInterval(qState.timer);
+  const {qs, answers, student, exam} = qState;
+  const cor = answers.filter((a,i)=>isCorrect(qs[i], a)).length;
+  const total = qs.length;
+  const pct = Math.round(cor / total * 100);
+  const score = Math.round(cor / total * 100) / 10;
+  const elapsed = Math.round((Date.now() - qState.startTime) / 1000);
+  const result = {student:student.name, sid:student.id, exam:exam.name, correct:cor, total, score, pct, time:elapsed, at:new Date().toLocaleString('vi-VN'), timestamp:Date.now()};
+  await saveResult(result);
+  clearPersist();
+  $('r-name').textContent = student.id ? `${student.name} (${student.id})` : student.name;
+  $('r-score').textContent = score;
+  $('r-cor').textContent = cor;
+  $('r-wrg').textContent = total - cor;
+  $('r-time').textContent = (elapsed>=60 ? Math.floor(elapsed/60)+'p ' : '') + (elapsed%60) + 's';
+  $('r-pct').textContent = pct + '%';
+  const c = $('r-circle'), sn = $('r-score');
+  if(pct>=80){ c.style.borderColor='#1D9E75'; c.style.background='#f0fdf8'; sn.style.color='#0F6E56'; }
+  else if(pct>=60){ c.style.borderColor='#f59e0b'; c.style.background='#fffbeb'; sn.style.color='#b45309'; }
+  else{ c.style.borderColor='#ef4444'; c.style.background='#fef2f2'; sn.style.color='#b91c1c'; }
+  $('r-msg').textContent = pct>=80 ? 'Xuất sắc! Tiếp tục phát huy!' : pct>=60 ? 'Khá tốt! Cần ôn tập thêm.' : 'Cần cố gắng hơn nhé!';
+  $('r-review').innerHTML = qs.map((q,i)=>{
+    const ua = answers[i], ok = isCorrect(q, ua);
+    return `<div class="ri">
+      <b>${i+1}. ${renderRich(q.text)}</b>${mediaHTML(q.image)}${audioHTML(q.audio)}
+      <div>Bạn chọn: ${formatAnswer(q, ua, false)}</div>
+      ${ok ? '<div style="color:#15803d">✓ Đúng</div>' : `<div style="color:#15803d">✓ Đúng: ${formatAnswer(q, ua, true)}</div>`}
+    </div>`;
+  }).join('');
+  showScreen('sc-result');
+  typesetMath($('sc-result'));
+}
+
+function goHome(){ clearInterval(qState.timer); clearPersist(); showScreen('sc-home'); }
+function retake(){
+  qState.idx = 0; qState.answers = [];
+  const pool = getPool(qState.exam);
+  qState.qs = shuffle(pool).slice(0, Math.min(qState.exam.count, pool.length));
+  qState.startTime = Date.now(); persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
+}
+
+function maybeResume(){
+  const raw = localStorage.getItem(STORE_KEY);
+  if(!raw) return;
+  try{
+    const saved = JSON.parse(raw);
+    if(saved?.qs?.length && confirm('Phát hiện bài làm chưa hoàn thành. Đồng chí có muốn tiếp tục không?')){
+      qState = saved; startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
+    }
+  }catch{ clearPersist(); }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await initData(false);
+  populateExamSelect();
+  maybeResume();
+  $('s-exam').addEventListener('change', updateExamDesc);
+  $('btn-start').addEventListener('click', startExam);
+  $('btn-next').addEventListener('click', nextQ);
+  $('btn-finish').addEventListener('click', finishExam);
+  $('btn-home').addEventListener('click', goHome);
+  $('btn-retake').addEventListener('click', retake);
+  $('q-opts').addEventListener('click', e => {
+    const btn = e.target.closest('.answer-btn');
+    if(btn){
+      if(btn.disabled) return;
+      const idx = parseInt(btn.dataset.idx);
+      if(btn.classList.contains('multi')) toggleMulti(btn, idx);
+      else selectAnsSingle(idx);
+      return;
+    }
+    if(e.target.id === 'btn-confirm-multi') confirmMulti();
+    if(e.target.id === 'btn-confirm-fill') confirmFillBlank();
+    if(e.target.id === 'btn-confirm-drag') confirmDragDrop();
+    if(e.target.id === 'btn-confirm-match') confirmMatching();
+
+    const chip = e.target.closest('.bank-chip');
+    if(chip){
+      if(chip.disabled) return;
+      selectBankChip(chip, parseInt(chip.dataset.bankIdx));
+      return;
+    }
+    const slot = e.target.closest('.drop-slot');
+    if(slot){
+      if(slot.disabled) return;
+      placeInSlot(slot);
+      return;
+    }
+    const mLeft = e.target.closest('.match-left');
+    if(mLeft){
+      if(mLeft.disabled) return;
+      const idx = parseInt(mLeft.dataset.idx);
+      if(mLeft.classList.contains('paired')){ unpairByLeft(idx); return; }
+      clearMatchSelection();
+      mLeft.classList.add('selected');
+      matchSelectedLeft = idx;
+      return;
+    }
+    const mRight = e.target.closest('.match-right');
+    if(mRight){
+      if(mRight.disabled) return;
+      const orig = parseInt(mRight.dataset.orig);
+      if(mRight.classList.contains('paired')){
+        const leftIdx = Object.keys(matchPairs).find(k => matchPairs[k] === orig);
+        if(leftIdx !== undefined) unpairByLeft(parseInt(leftIdx));
+        return;
+      }
+      if(matchSelectedLeft !== null){
+        pairSelection(matchSelectedLeft, orig);
+        clearMatchSelection();
+      }
+      return;
+    }
+  });
+});
