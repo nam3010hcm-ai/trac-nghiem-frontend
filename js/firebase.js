@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
   getFirestore, collection, getDocs, getDoc,
-  addDoc, setDoc, doc, deleteDoc
+  addDoc, setDoc, doc, deleteDoc,
+  updateDoc, query, orderBy // <--- THÊM 3 HÀM NÀY VÀO ĐÂY
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword,
@@ -25,5 +26,6 @@ const auth = getAuth(app);
 export {
   db, auth,
   collection, getDocs, getDoc, addDoc, setDoc, doc, deleteDoc,
+  updateDoc, query, orderBy, // <--- NHỚ EXPORT CHÚNG RA NGOÀI
   signInWithEmailAndPassword, signOut, onAuthStateChanged
 };
