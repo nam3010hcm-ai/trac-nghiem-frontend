@@ -240,7 +240,7 @@ window.populateCohortExams = function() {
 
     // 1. LỌC ĐỀ THI: Chỉ lấy những đề KHÔNG BỊ ẨN
     // (Kiểm tra thuộc tính hidden, nếu e.hidden là true thì bỏ qua)
-    const visibleExams = state.exams.filter(e => !e.hidden);
+    const visibleExams = state.exams.filter(e => !e.isHidden);
 
     if (visibleExams.length === 0) {
         container.innerHTML = '<div style="color:#64748b; font-size:13px; text-align:center; padding: 10px;">Không có đề thi nào đang ở chế độ HIỆN!</div>';
