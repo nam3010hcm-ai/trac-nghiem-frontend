@@ -243,7 +243,37 @@ window.MathJax = {
           <button class="btn" id="btn-close-eform">Hủy</button>
         </div>
       </div>
-
+      //
+      <!-- GIAO DIỆN QUẢN LÝ CÂU HỎI TRONG ĐỀ -->
+      <div id="exam-q-manager" style="display:none" class="card">
+          <div class="sec-title" style="display:flex;justify-content:space-between; align-items:center;">
+              <span>Quản lý câu hỏi: <span id="eqm-name" style="color:#1d9e75"></span></span>
+              <button class="btn btn-sm" id="btn-close-eqm">Đóng</button>
+          </div>
+          <div class="info-note">
+              📌 Kéo các câu hỏi thủ công vào đề sẽ thay thế cơ chế lấy ngẫu nhiên ban đầu. Số lượng câu hỏi của đề thi sẽ tự động chốt theo số câu bạn chọn ở cột phải.
+          </div>
+          
+          <div style="display:flex; gap: 20px; flex-wrap:wrap; margin-top:14px;">
+              <!-- Cột trái: Ngân hàng -->
+              <div style="flex:1; min-width:300px; border:1px solid #e5e7eb; border-radius:8px; padding:10px; background:#f8fafc;">
+                  <div style="font-weight:700; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; color:#334155;">
+                      <span>Ngân hàng câu hỏi</span>
+                      <select id="eqm-filter-cat" style="padding:4px; max-width:150px; font-size:13px; border:1px solid #cbd5e1; border-radius:4px;"></select>
+                  </div>
+                  <div id="eqm-available-list" style="max-height:400px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+              </div>
+      
+              <!-- Cột phải: Đã chọn -->
+              <div style="flex:1; min-width:300px; border:1px solid #10b981; border-radius:8px; padding:10px; background:#f0fdf4;">
+                  <div style="font-weight:700; margin-bottom:8px; color:#065f46;">
+                      Đã thêm vào đề (<span id="eqm-selected-count">0</span> câu)
+                  </div>
+                  <div id="eqm-selected-list" style="max-height:400px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+              </div>
+          </div>
+      </div>
+      //
       <div id="e-list"></div>
     </div>
 
