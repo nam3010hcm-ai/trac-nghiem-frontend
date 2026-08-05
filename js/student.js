@@ -427,7 +427,16 @@ async function finishExam(){
   await saveResult(result); // Đẩy lên Firebase thông qua file results.js
   
   clearPersist();
-  $('r-name').textContent = student.id ? `${student.name} (${student.id})` : student.name;
+  // Hiển thị thông tin sau khi thi xong ca thi
+  $('r-name').innerHTML = `
+    <div style="font-size: 15px; font-weight: 500; line-height: 1.6; color: #334155; margin-top: 8px;">
+        Mã học viên: <b style="color: #0f172a;">${student.id || 'N/A'}</b><br>
+        Tên học viên: <b style="color: #0f172a;">${student.name || 'N/A'}</b><br>
+        Ca thi: <b style="color: #0f172a;">${student.cohort || 'N/A'}</b><br>
+        Đề thi: <b style="color: #0f172a;">${exam.name || 'N/A'}</b>
+    </div>
+`;
+  //
   $('r-score').textContent = score;
   $('r-cor').textContent = cor;
   $('r-wrg').textContent = total - cor;
