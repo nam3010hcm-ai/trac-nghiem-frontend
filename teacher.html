@@ -70,6 +70,7 @@ window.MathJax = {
       <button class="tab-btn" data-tab="e">📋 Đề thi</button>
       <button class="tab-btn" data-tab="r">📊 Kết quả</button>
       <button class="tab-btn" data-tab="c">🗂️ Chủ đề</button>
+      <button class="tab-btn" data-tab="cohort">📅 Ca thi</button>
     </div>
 
     <div id="tc-q" class="tab-content active">
@@ -315,9 +316,46 @@ window.MathJax = {
         </div>
         <div id="cat-management-list"></div>
       </div>
-    </div>
-  </div>
-</div>
+    </div><!-- Đây là thẻ đóng của <div id="tc-c"> -->
+    <!-- THÊM TAB CA THI TẠI ĐÂY -->
+        <div id="tc-cohort" class="tab-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                <div class="sec-title" style="margin:0">Quản lý Ca thi / Lớp học</div>
+            </div>
+
+            <!-- Form thêm ca thi -->
+            <div class="card" style="margin-bottom: 20px; padding: 16px;">
+                <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:#475569">
+                    ➕ THÊM CA THI MỚI
+                </div>
+                <div class="fg">
+                    <label>Tên Ca thi</label>
+                    <input id="t-cohort-name" placeholder="Ví dụ: Ca 1 - Sáng 20/10..."/>
+                </div>
+                <button class="btn btn-p btn-full" id="btn-add-cohort">Thêm Ca thi</button>
+            </div>
+
+            <!-- Bảng danh sách ca thi -->
+            <div class="card" style="padding:10px 16px">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tên Ca thi</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="t-cohort-list">
+                            <tr><td colspan="3" style="text-align:center; padding: 10px;">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- KẾT THÚC TAB CA THI -->
+  </div><!-- Đây là thẻ đóng của <div id="t-panel"> -->
+</div><!-- Đây là thẻ đóng của <div class="main"> -->
 
 <script type="module" src="js/teacher.js"></script>
 </body>
