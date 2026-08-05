@@ -141,12 +141,14 @@ export function getPool(exam){
 export async function initData(loadResults = false){
   try{
     const catSnap = await getDoc(doc(db, "metadata", "categories"));
-    if(!catSnap.exists() || Object.keys(catSnap.data()).length === 0){
+    if(!catSnap.exists()){
+      // Chỉ nạp dữ liệu gốc ở lần đầu tiên khởi tạo (khi chưa có Document trên Firebase)
       state.SUBCATS = clone(DEFAULT_SUBCATS);
       await setDoc(doc(db, "metadata", "categories"), state.SUBCATS);
     } else {
-      state.SUBCATS = {...clone(DEFAULT_SUBCATS), ...catSnap.data()};
-      await setDoc(doc(db, "metadata", "categories"), state.SUBCATS);
+      // Bắt buộc sử dụng 100% dữ liệu từ Firebase trả về. 
+      // Không gộp (merge) với DEFAULT_SUBCATS để tránh việc các chủ đề đã xóa bị hiện lại.
+      state.SUBCATS = catSnap.data();
     }
 
     const qSnap = await getDocs(collection(db, "questions"));
@@ -166,8 +168,10 @@ export async function initData(loadResults = false){
       state.exams = eSnap.docs.map(d => d.data());
       if(!state.exams.some(e => e.cat === 'Toán')){
         const mathExam = DEFAULT_EXAMS.find(e => e.cat === 'Toán');
-        state.exams.push(mathExam);
-        await setDoc(doc(db, "exams", String(mathExam.id)), mathExam);
+        if (mathExam) {
+            state.exams.push(mathExam);
+            await setDoc(doc(db, "exams", String(mathExam.id)), mathExam);
+        }
       }
     }
     state.nextEId = state.exams.length ? Math.max(...state.exams.map(e => Number(e.id)||0), 9) + 1 : 10;
@@ -175,7 +179,9 @@ export async function initData(loadResults = false){
     if(loadResults){
       const rSnap = await getDocs(collection(db, "results"));
       state.results = rSnap.docs.map(d => d.data()).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-    } else state.results = [];
+    } else {
+        state.results = [];
+    }
   }catch(error){
     console.error("Lỗi kết nối database:", error);
     alert("Lỗi kết nối Firebase. Hãy kiểm tra API Key, Firestore Rules và Console.");
