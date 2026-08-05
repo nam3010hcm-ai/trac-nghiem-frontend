@@ -199,9 +199,14 @@ $('e-list').addEventListener('click', e => {
   const btn = e.target.closest('.e-action');
   if (!btn) return;
 
-  const id = parseInt(btn.dataset.id);
+  const id = parseInt(btn.dataset.id); 
+  // (Nếu id của bạn trong Firebase là chuỗi string, hãy bỏ parseInt đi và dùng: const id = btn.dataset.id;)
+
   if (btn.dataset.action === 'toggle') toggleExamVisibility(id);
   if (btn.dataset.action === 'delete') deleteExam(id);
+  
+  // THÊM DÒNG NÀY ĐỂ MỞ FORM SỬA
+  if (btn.dataset.action === 'edit') openEForm(id); 
 });
 
 $('btn-add-parent').addEventListener('click', addParentCategory);
