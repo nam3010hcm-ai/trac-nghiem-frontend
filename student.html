@@ -39,13 +39,21 @@ window.MathJax = {
       </div>
 
       <div class="fg">
-        <label>Họ và tên *</label>
-        <input id="s-name" placeholder="Ví dụ: Trần Văn A"/>
+          <label>Mã học viên *</label>
+          <input type="text" id="s-id" placeholder="VD: HV01">
       </div>
-
+      
       <div class="fg">
-        <label>Mã học viên / Chiến sĩ / MSSV</label>
-        <input id="s-id" placeholder="HV001"/>
+          <label>Họ và Tên *</label>
+          <input type="text" id="s-name" placeholder="VD: Nguyễn Văn A">
+      </div>
+      
+      <!-- THÊM KHỐI CHỌN CA THI VÀO ĐÂY -->
+      <div class="fg">
+          <label>Chọn ca thi / lớp học *</label>
+          <select id="s-cohort" style="width: 100%; padding: 10px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+              <option value="" disabled selected>-- Đang tải danh sách ca thi... --</option>
+          </select>
       </div>
 
       <div class="fg">
