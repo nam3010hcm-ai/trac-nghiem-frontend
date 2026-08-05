@@ -117,6 +117,7 @@ export function renderExams(){
       </div>
       <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end">
         <button class="btn btn-sm ${hideClass} e-action" data-action="toggle" data-id="${e.id}">${hideText}</button>
+        <button class="btn btn-sm e-action" data-action="manage-q" data-id="${e.id}" style="color: #10b981; border: 1px solid #a7f3d0; background: #ecfdf5; margin-right: 6px;">📝 Câu hỏi</button>
         <button class="btn btn-sm e-action" data-action="edit" data-id="${e.id}" style="color: #3b82f6; border: 1px solid #bfdbfe; background: #eff6ff; margin-right: 6px;">✏️ Sửa</button>
         <button class="btn btn-sm btn-danger e-action" data-action="delete" data-id="${e.id}">× Xóa</button>
       </div>
