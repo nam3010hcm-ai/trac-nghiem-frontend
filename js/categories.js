@@ -39,18 +39,31 @@ export async function addParentCategory(){
 export async function deleteParentCategory(parent){
   if(!confirm(`Xóa chủ đề cha "${parent}"? Các câu hỏi/đề thi thuộc chủ đề này sẽ bị bỏ liên kết.`)) return;
   const subs = state.SUBCATS[parent] || [];
-  delete state.SUBCATS[parent];
+  
+  // TẠO BẢN SAO ĐỂ ÉP FIREBASE LƯU DỮ LIỆU MỚI
+  const updatedSubcats = { ...state.SUBCATS };
+  delete updatedSubcats[parent];
+  state.SUBCATS = updatedSubcats; // Cập nhật lại state gốc
 
-  for(const q of state.questions){
-    if(q.cat === parent || subs.includes(q.subcat)){ q.cat=''; q.subcat=''; await setDoc(doc(db, "questions", String(q.id)), q); }
+  for(const q of (state.questions || [])){
+    if(q.cat === parent || subs.includes(q.subcat)){ 
+        q.cat=''; q.subcat=''; 
+        await setDoc(doc(db, "questions", String(q.id)), q); 
+    }
   }
-  for(const e of state.exams){
-    if(e.cat === parent || subs.includes(e.subcat)){ e.cat=''; e.subcat=''; await setDoc(doc(db, "exams", String(e.id)), e); }
+  for(const e of (state.exams || [])){
+    if(e.cat === parent || subs.includes(e.subcat)){ 
+        e.cat=''; e.subcat=''; 
+        await setDoc(doc(db, "exams", String(e.id)), e); 
+    }
   }
+  
+  // Ghi đè cục dữ liệu mới lên Firebase
   await setDoc(doc(db, "metadata", "categories"), state.SUBCATS);
+  
   refreshCategoryUI();
-  renderQuestions();
-  renderExams();
+  if(typeof renderQuestions === 'function') renderQuestions();
+  if(typeof renderExams === 'function') renderExams();
   alert('✅ Đã xóa chủ đề cha!');
 }
 
@@ -71,17 +84,30 @@ export async function addSubCategory(){
 
 export async function deleteSubCategory(parent, sub){
   if(!confirm(`Xóa phần con "${sub}"? Các câu hỏi/đề thi thuộc phần này sẽ bị bỏ liên kết.`)) return;
-  state.SUBCATS[parent] = (state.SUBCATS[parent] || []).filter(s => s !== sub);
-  for(const q of state.questions){
-    if(q.subcat === sub){ q.subcat = ''; await setDoc(doc(db, "questions", String(q.id)), q); }
+  
+  // TẠO BẢN SAO CHO MẢNG ĐỂ ÉP FIREBASE NHẬN DIỆN
+  const updatedSubcats = { ...state.SUBCATS };
+  updatedSubcats[parent] = (updatedSubcats[parent] || []).filter(s => s !== sub);
+  state.SUBCATS = updatedSubcats;
+
+  for(const q of (state.questions || [])){
+    if(q.subcat === sub){ 
+        q.subcat = ''; 
+        await setDoc(doc(db, "questions", String(q.id)), q); 
+    }
   }
-  for(const e of state.exams){
-    if(e.subcat === sub){ e.subcat = ''; await setDoc(doc(db, "exams", String(e.id)), e); }
+  for(const e of (state.exams || [])){
+    if(e.subcat === sub){ 
+        e.subcat = ''; 
+        await setDoc(doc(db, "exams", String(e.id)), e); 
+    }
   }
+  
   await setDoc(doc(db, "metadata", "categories"), state.SUBCATS);
+  
   refreshCategoryUI();
-  renderQuestions();
-  renderExams();
+  if(typeof renderQuestions === 'function') renderQuestions();
+  if(typeof renderExams === 'function') renderExams();
   alert('✅ Đã xóa chủ đề con!');
 }
 
