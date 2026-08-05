@@ -4,7 +4,7 @@ import {
   collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, orderBy
 } from './firebase.js';
 
-import { initData, $ } from './common.js';
+import { initData, state, $ } from './common.js';
 import { populateCategoryDropdowns, updateFltSubcat, updateQFormSubcat, updateEFormSubcat, addParentCategory, deleteParentCategory, addSubCategory, deleteSubCategory, editSubCategory, restoreDefaultCategories, renderCatManagementList } from './categories.js';
 import { openQForm, closeQForm, saveQ, deleteQ, renderQuestions } from './questions.js';
 import { openEForm, closeEForm, saveExam, deleteExam, toggleExamVisibility, renderExams, populateExamSelect } from './exams.js';
@@ -57,20 +57,22 @@ function togglePasswordVisibility() {
 }
 
 function switchTTab(t) {
-  // Bổ sung thêm 'cohort' vào mảng dưới đây
   ['q', 'e', 'r', 'c', 'cohort'].forEach(x => {
-    $('tc-' + x).classList.toggle('active', x === t);
+    const content = $('tc-' + x);
+    if(content) content.classList.toggle('active', x === t);
     
-    // Đảm bảo nút tab cũng được highlight
     const tabBtn = document.querySelector(`.tab-btn[data-tab="${x}"]`);
-    if (tabBtn) {
-        tabBtn.classList.toggle('active', x === t);
-    }
+    if(tabBtn) tabBtn.classList.toggle('active', x === t);
   });
 
   if (t === 'r') renderResults();
   if (t === 'c') renderCatManagementList();
-  if (t === 'cohort') loadCohorts(); // Tự động tải lại danh sách khi mở tab Ca thi
+  if (t === 'cohort') {
+      loadCohorts(); // Tải danh sách ca thi
+      if (typeof window.populateCohortExams === 'function') {
+          window.populateCohortExams(); // Tải danh sách checkbox đề thi
+      }
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
