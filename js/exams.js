@@ -23,7 +23,49 @@ export function updateExamDesc(){
   $('s-exam-desc').textContent = e ? `${e.desc || ''} • ${e.count} câu • Ngân hàng: ${pool} câu${e.timeLimit>0?' • ⏱ '+e.timeLimit+' phút':''}` : '';
 }
 
-export function openEForm(){ $('eform').style.display='block'; updateEFormSubcat(); }
+export function openEForm(id = null) {
+    $('eform').style.display = 'block';
+    
+    if (id) {
+        // --- TRƯỜNG HỢP: SỬA ĐỀ THI ---
+        const exam = state.exams.find(e => e.id === id);
+        if (exam) {
+            // Đổ dữ liệu cũ vào form
+            $('ef-name').value = exam.name || '';
+            $('ef-desc').value = exam.desc || '';
+            $('ef-count').value = exam.count || 10;
+            $('ef-time').value = exam.timeLimit || 0;
+            
+            // Xử lý Category và Sub-category
+            $('ef-cat').value = exam.cat || '';
+            updateEFormSubcat(); // Bắt buộc gọi hàm này để load danh sách phần con
+            $('ef-subcat').value = exam.subcat || '';
+            
+            // Đổi giao diện để giáo viên biết đang ở chế độ Sửa
+            document.querySelector('#eform .sec-title').innerText = '✏️ Sửa đề thi';
+            $('btn-save-exam').innerText = '✅ Cập nhật';
+            
+            // Gắn ID của đề thi vào nút Lưu để lát nữa hàm saveExam biết đường cập nhật
+            $('btn-save-exam').dataset.editId = id; 
+        }
+    } else {
+        // --- TRƯỜNG HỢP: TẠO MỚI ---
+        $('ef-name').value = '';
+        $('ef-desc').value = '';
+        $('ef-count').value = 10;
+        $('ef-time').value = 0;
+        $('ef-cat').value = '';
+        updateEFormSubcat();
+        $('ef-subcat').value = '';
+        
+        document.querySelector('#eform .sec-title').innerText = 'Tạo đề thi mới';
+        $('btn-save-exam').innerText = '✅ Tạo đề thi';
+        
+        // Xóa ID cũ (nếu trước đó vừa bấm sửa đề khác)
+        delete $('btn-save-exam').dataset.editId; 
+    }
+}
+
 export function closeEForm(){ $('eform').style.display='none'; }
 
 export async function saveExam(){
