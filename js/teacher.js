@@ -207,6 +207,8 @@ $('e-list').addEventListener('click', e => {
   
   // THÊM DÒNG NÀY ĐỂ MỞ FORM SỬA
   if (btn.dataset.action === 'edit') openEForm(id); 
+  // Đặt ngay dưới lệnh bắt nút edit (sửa)
+  if (btn.dataset.action === 'manage-q') window.openExamQuestionManager(id);
 });
 
 $('btn-add-parent').addEventListener('click', addParentCategory);
@@ -425,4 +427,95 @@ window.deleteCohort = async (id) => {
         await deleteDoc(doc(db, "cohorts", id));
         loadCohorts();
     }
+};
+
+// ==========================================
+// TÍNH NĂNG CHỌN CÂU HỎI THỦ CÔNG CHO ĐỀ THI
+// ==========================================
+let currentEqmExamId = null;
+
+window.openExamQuestionManager = function(examId) {
+    currentEqmExamId = examId;
+    const exam = state.exams.find(e => e.id === examId);
+    if (!exam) return;
+
+    // Ẩn form sửa đề (nếu đang mở), hiện form quản lý câu hỏi
+    const eForm = document.getElementById('eform');
+    if(eForm) eForm.style.display = 'none'; 
+    document.getElementById('exam-q-manager').style.display = 'block';
+    document.getElementById('eqm-name').textContent = exam.name;
+
+    // Tạo mảng qIds nếu đề này chưa từng chọn thủ công
+    if (!exam.qIds) exam.qIds = [];
+
+    // Nạp filter danh mục
+    const cats = Object.keys(state.SUBCATS).sort();
+    document.getElementById('eqm-filter-cat').innerHTML = '<option value="">(Tất cả chủ đề)</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    renderEqmLists();
+};
+
+document.getElementById('btn-close-eqm')?.addEventListener('click', () => {
+    document.getElementById('exam-q-manager').style.display = 'none';
+});
+
+document.getElementById('eqm-filter-cat')?.addEventListener('change', () => {
+    renderEqmLists(); // Lọc lại cột ngân hàng khi đổi chủ đề
+});
+
+function renderEqmLists() {
+    if (!currentEqmExamId) return;
+    const exam = state.exams.find(e => e.id === currentEqmExamId);
+    if (!exam) return;
+
+    const filterCat = document.getElementById('eqm-filter-cat').value;
+    const qIds = exam.qIds || [];
+
+    document.getElementById('eqm-selected-count').textContent = qIds.length;
+
+    // Phân loại câu hỏi thành 2 cột: Đã chọn và Chưa chọn
+    const selectedQs = state.questions.filter(q => qIds.includes(q.id));
+    const availableQs = state.questions.filter(q => !qIds.includes(q.id) && (filterCat === '' || q.cat === filterCat));
+
+    const renderQItem = (q, isSelected) => `
+        <div style="background:#fff; border:1px solid ${isSelected ? '#a7f3d0' : '#e2e8f0'}; border-radius:6px; padding:8px; display:flex; justify-content:space-between; align-items:start; gap:10px; transition: 0.2s;">
+            <div style="font-size:13px; color:#334155; flex:1;">
+                <b style="color:#64748b">[${q.cat || 'Chưa phân loại'}]</b> ${q.text.substring(0, 60)}${q.text.length > 60 ? '...' : ''}
+            </div>
+            <button class="btn btn-sm" onclick="window.${isSelected ? 'removeQFromExam' : 'addQToExam'}(${q.id})" style="background:${isSelected ? '#fee2e2' : '#e0e7ff'}; color:${isSelected ? '#ef4444' : '#4f46e5'}; border:none; padding:4px 8px; font-weight:bold; cursor:pointer;">
+                ${isSelected ? '✖ Bỏ' : '➕ Thêm'}
+            </button>
+        </div>
+    `;
+
+    document.getElementById('eqm-selected-list').innerHTML = selectedQs.length ? selectedQs.map(q => renderQItem(q, true)).join('') : '<div style="font-size:13px; color:#94a3b8; text-align:center;">Đề thi chưa có câu hỏi nào</div>';
+    document.getElementById('eqm-available-list').innerHTML = availableQs.length ? availableQs.map(q => renderQItem(q, false)).join('') : '<div style="font-size:13px; color:#94a3b8; text-align:center;">Không có câu hỏi phù hợp</div>';
+}
+
+// Bấm thêm câu hỏi
+window.addQToExam = async (qId) => {
+    const exam = state.exams.find(e => e.id === currentEqmExamId);
+    if(!exam) return;
+    if(!exam.qIds) exam.qIds = [];
+    
+    if(!exam.qIds.includes(qId)) {
+        exam.qIds.push(qId);
+        exam.count = exam.qIds.length; // Tự động cập nhật số lượng câu của đề thi
+        await updateDoc(doc(db, "exams", String(exam.id)), { qIds: exam.qIds, count: exam.count });
+        renderEqmLists();
+        renderExams(); // Cập nhật lại số lượng hiển thị trên danh sách ngoài
+    }
+};
+
+// Bấm xóa câu hỏi
+window.removeQFromExam = async (qId) => {
+    const exam = state.exams.find(e => e.id === currentEqmExamId);
+    if(!exam) return;
+    if(!exam.qIds) exam.qIds = [];
+    
+    exam.qIds = exam.qIds.filter(id => id !== qId);
+    exam.count = exam.qIds.length; // Tự động cập nhật số lượng
+    await updateDoc(doc(db, "exams", String(exam.id)), { qIds: exam.qIds, count: exam.count });
+    renderEqmLists();
+    renderExams();
 };
