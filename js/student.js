@@ -3,6 +3,11 @@ import { populateExamSelect, updateExamDesc } from './exams.js';
 import { saveResult } from './results.js';
 
 let qState = {};
+function showStudentBadge(){
+  const s = qState.student;
+  if(!s) return;
+  $('q-student').textContent = s.id ? `${s.name} — Mã: ${s.id}` : s.name;
+}
 const STORE_KEY = 'quiz_current_attempt_v2';
 
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); $(id).classList.add('active'); }
@@ -19,7 +24,7 @@ function startExam(){
   const qs = shuffle(pool).slice(0, Math.min(exam.count, pool.length));
   if(!qs.length){ alert('Đề thi chưa có câu hỏi phù hợp!'); return; }
   qState = { exam, student:{name, id:$('s-id').value.trim()}, qs, idx:0, answers:[], startTime:Date.now(), timer:null };
-  persist(); startTimer(); showScreen('sc-quiz'); renderQ();
+  persist(); startTimer(); showStudentBadge();showScreen('sc-quiz'); renderQ();
 }
 
 function startTimer(){
@@ -93,7 +98,7 @@ async function finishExam(){
   const result = {student:student.name, sid:student.id, exam:exam.name, correct:cor, total, score, pct, time:elapsed, at:new Date().toLocaleString('vi-VN'), timestamp:Date.now()};
   await saveResult(result);
   clearPersist();
-  $('r-name').textContent = student.name;
+  $('r-name').textContent = student.id ? `${student.name} (${student.id})` : student.name;
   $('r-score').textContent = score;
   $('r-cor').textContent = cor;
   $('r-wrg').textContent = total - cor;
@@ -122,7 +127,7 @@ function retake(){
   qState.idx = 0; qState.answers = [];
   const pool = getPool(qState.exam);
   qState.qs = shuffle(pool).slice(0, Math.min(qState.exam.count, pool.length));
-  qState.startTime = Date.now(); persist(); startTimer(); showScreen('sc-quiz'); renderQ();
+  qState.startTime = Date.now(); persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
 }
 
 function maybeResume(){
@@ -131,7 +136,7 @@ function maybeResume(){
   try{
     const saved = JSON.parse(raw);
     if(saved?.qs?.length && confirm('Phát hiện bài làm chưa hoàn thành. Đồng chí có muốn tiếp tục không?')){
-      qState = saved; startTimer(); showScreen('sc-quiz'); renderQ();
+      qState = saved; startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
     }
   }catch{ clearPersist(); }
 }
