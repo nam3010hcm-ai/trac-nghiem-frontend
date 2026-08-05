@@ -1,3 +1,6 @@
+// Thêm import các hàm Firebase để lấy danh sách Ca thi
+import { db, collection, getDocs } from './firebase.js';
+
 import { initData, state, $, KEYS, shuffle, getPool, esc, mediaHTML, audioHTML, renderRich, typesetMath, isCorrect, formatAnswer, splitBlanks } from './common.js';
 import { populateExamSelect, updateExamDesc } from './exams.js';
 import { saveResult } from './results.js';
@@ -16,19 +19,63 @@ function clearPersist(){ localStorage.removeItem(STORE_KEY); }
 function showStudentBadge(){
   const s = qState.student;
   if(!s) return;
-  $('q-student').textContent = s.id ? `${s.name} — Mã: ${s.id}` : s.name;
+  // Bổ sung thêm Tên ca thi vào huy hiệu hiển thị khi làm bài
+  const cohortText = s.cohort ? ` — Lớp: ${s.cohort}` : '';
+  $('q-student').textContent = s.id ? `${s.name} — Mã: ${s.id}${cohortText}` : `${s.name}${cohortText}`;
 }
+
+// ==========================================
+// HÀM TẢI DANH SÁCH CA THI ĐANG MỞ
+// ==========================================
+async function loadActiveCohorts() {
+  const selectEl = $('s-cohort');
+  if (!selectEl) return;
+
+  try {
+      const snapshot = await getDocs(collection(db, "cohorts"));
+      selectEl.innerHTML = '<option value="" disabled selected>-- Vui lòng chọn ca thi --</option>';
+      
+      let hasActiveCohort = false;
+
+      snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.status === 'active') {
+              hasActiveCohort = true;
+              const option = document.createElement("option");
+              option.value = data.name;
+              option.textContent = data.name;
+              selectEl.appendChild(option);
+          }
+      });
+
+      if (!hasActiveCohort) {
+          selectEl.innerHTML = '<option value="" disabled selected>Hiện không có ca thi nào đang mở</option>';
+      }
+  } catch (error) {
+      console.error("Lỗi tải danh sách ca thi:", error);
+      selectEl.innerHTML = '<option value="" disabled selected>Lỗi tải dữ liệu. Vui lòng F5 lại trang!</option>';
+  }
+}
+// ==========================================
 
 function startExam(){
   const name = $('s-name').value.trim();
   if(!name){ alert('Vui lòng nhập họ tên!'); return; }
+  
+  // KIỂM TRA ĐÃ CHỌN CA THI HAY CHƯA
+  const cohort = $('s-cohort') ? $('s-cohort').value : '';
+  if(!cohort){ alert('Vui lòng chọn ca thi / lớp học!'); return; }
+
   const eid = parseInt($('s-exam').value);
   const exam = state.exams.find(e => e.id === eid);
   if(!exam){ alert('Không tìm thấy đề thi hoặc chưa chọn đề!'); return; }
   const pool = getPool(exam);
   const qs = shuffle(pool).slice(0, Math.min(exam.count, pool.length));
   if(!qs.length){ alert('Đề thi chưa có câu hỏi phù hợp!'); return; }
-  qState = { exam, student:{name, id:$('s-id').value.trim()}, qs, idx:0, answers:[], startTime:Date.now(), timer:null };
+  
+  // LƯU THÊM COHORT VÀO qState
+  qState = { exam, student:{name, id:$('s-id').value.trim(), cohort}, qs, idx:0, answers:[], startTime:Date.now(), timer:null };
+  
   persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
 }
 
@@ -300,8 +347,24 @@ async function finishExam(){
   const pct = Math.round(cor / total * 100);
   const score = Math.round(cor / total * 100) / 10;
   const elapsed = Math.round((Date.now() - qState.startTime) / 1000);
-  const result = {student:student.name, sid:student.id, exam:exam.name, correct:cor, total, score, pct, time:elapsed, at:new Date().toLocaleString('vi-VN'), timestamp:Date.now()};
-  await saveResult(result);
+  
+  // LƯU KÈM TRƯỜNG COHORT VÀO KẾT QUẢ ĐẨY LÊN FIREBASE
+  const result = {
+    student: student.name, 
+    sid: student.id, 
+    cohort: student.cohort, // Đã có mặt!
+    exam: exam.name, 
+    correct: cor, 
+    total, 
+    score, 
+    pct, 
+    time: elapsed, 
+    at: new Date().toLocaleString('vi-VN'), 
+    timestamp: Date.now()
+  };
+  
+  await saveResult(result); // Đẩy lên Firebase thông qua file results.js
+  
   clearPersist();
   $('r-name').textContent = student.id ? `${student.name} (${student.id})` : student.name;
   $('r-score').textContent = score;
@@ -347,6 +410,10 @@ function maybeResume(){
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initData(false);
+  
+  // TẢI DANH SÁCH CA THI NGAY KHI VÀO TRANG
+  loadActiveCohorts(); 
+  
   populateExamSelect();
   maybeResume();
   $('s-exam').addEventListener('change', updateExamDesc);
