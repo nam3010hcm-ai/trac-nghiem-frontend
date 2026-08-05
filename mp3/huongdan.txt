@@ -1,0 +1,33 @@
+Trực tiếp tạo thư mục mp3 ở ngoài cùng (không dùng public)
+Bước 1: Tải file lên GitHub đúng cấu trúc
+
+Trên máy tính của bạn, hãy tạo một thư mục mới và đặt tên là mp3 (viết thường).
+
+Đổi tên file âm thanh thành de-1-nghe.mp3 và bỏ vào thư mục mp3 đó.
+
+Mở trang GitHub dự án của bạn (nam3010hcm-ai/trac-nghiem-frontend).
+
+Bấm Add file > Upload files.
+
+Kéo thả cả thư mục mp3 từ máy tính vào giao diện GitHub và bấm Commit changes.
+
+Lúc này, cấu trúc kho mã nguồn của bạn sẽ trông như thế này (ngang hàng nhau, không có public):
+
+css/
+
+js/
+
+mp3/
+
+de-1-nghe.mp3
+
+index.html
+
+Bước 2: Lấy link dán vào trang soạn thảo
+Sau khi Vercel tự động cập nhật xong (chỉ khoảng 1 phút vì là web tĩnh), file MP3 của bạn đã sẵn sàng trên hệ thống.
+
+Bạn hãy copy đường link dưới đây và dán vào ô AUDIO (CHO CÂU NGHE - LISTENING, KHÔNG BẮT BUỘC):
+
+[https://trac-nghiem-frontend.vercel.app/mp3/de-1-nghe.mp3](https://trac-nghiem-frontend.vercel.app/mp3/de-1-nghe.mp3)
+
+(Lưu ý: Nếu bạn đang test trên tên miền mới thì link sẽ là [https://tracnghiem-k7.vercel.app/mp3/de-1-nghe.mp3](https://tracnghiem-k7.vercel.app/mp3/de-1-nghe.mp3)).
