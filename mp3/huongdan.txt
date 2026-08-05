@@ -1,9 +1,0 @@
-Nơi lưu trữ file audio mp3
-Cách 1: Sử dụng link gốc (Raw URL) của GitHub
-Nếu bạn muốn gọi trực tiếp file từ máy chủ GitHub, bạn cần chuyển đổi link giao diện thành link Raw (đổi github.com thành raw.githubusercontent.com và bỏ chữ blob).
-
-Đường lịnk trong thư mục github:
-https://github.com/nam3010hcm-ai/trac-nghiem-frontend/blob/main/mp3/%C4%90e%CC%82%CC%80%201%20-%20Nghe.mp3
-
-Đường link chính xác cho file của bạn sẽ là:
-[https://raw.githubusercontent.com/nam3010hcm-ai/trac-nghiem-frontend/main/mp3/%C4%90e%CC%82%CC%80%201%20-%20Nghe.mp3]
