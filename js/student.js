@@ -24,7 +24,7 @@ function startExam(){
   const qs = shuffle(pool).slice(0, Math.min(exam.count, pool.length));
   if(!qs.length){ alert('Đề thi chưa có câu hỏi phù hợp!'); return; }
   qState = { exam, student:{name, id:$('s-id').value.trim()}, qs, idx:0, answers:[], startTime:Date.now(), timer:null };
-  persist(); startTimer(); showStudentBadge();showScreen('sc-quiz'); renderQ();
+  persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
 }
 
 function startTimer(){
