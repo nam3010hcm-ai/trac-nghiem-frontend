@@ -274,11 +274,15 @@ window.MathJax = {
       </div>
       <div id="e-list"></div>
     </div>
-
+    
     <div id="tc-r" class="tab-content">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
         <div class="sec-title" style="margin:0">Kết quả làm bài (<span id="r-count">0</span>)</div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px; align-items:center;">
+          <!-- 1. BỘ LỌC CA THI -->
+          <select id="flt-r-cohort" style="padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; background: white; outline: none; cursor: pointer;">
+            <option value="">(Tất cả Ca thi)</option>
+          </select>
           <button class="btn" id="btn-export">⬇ Xuất CSV</button>
           <button class="btn btn-danger btn-sm" id="btn-clear-results">🗑 Xóa tất cả</button>
         </div>
@@ -290,15 +294,22 @@ window.MathJax = {
         <div class="table-wrap">
           <table class="data-table">
             <thead>
+              <!-- 2. CẬP NHẬT 9 CỘT CHO KHỚP VỚI HÀM RENDER JS -->
               <tr>
-                <th>Họ và Tên (Mã HV)</th>
+                <th style="text-align:center; width:50px;">STT</th>
+                <th>Mã HV</th>
+                <th>Họ và Tên</th>
+                <th>Ca thi</th>
                 <th>Đề thi</th>
-                <th>Điểm / %</th>
-                <th>Câu đúng</th>
-                <th>Thời gian nộp</th>
+                <th style="text-align:center;">Điểm</th>
+                <th style="text-align:center;">Câu đúng</th>
+                <th style="text-align:center;">Thời gian làm bài</th>
+                <th>Lúc nộp</th>
               </tr>
             </thead>
-            <tbody id="r-list"></tbody>
+            <tbody id="r-tbody">
+              <!-- JS renderResults sẽ đổ dữ liệu vào đây -->
+            </tbody>
           </table>
         </div>
       </div>
@@ -346,69 +357,69 @@ window.MathJax = {
       </div>
     </div><!-- Đây là thẻ đóng của <div id="tc-c"> -->
     <!-- THÊM TAB CA THI TẠI ĐÂY -->
-        <div id="tc-cohort" class="tab-content">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-                <div class="sec-title" style="margin:0">Quản lý Ca thi / Lớp học</div>
-            </div>
+    <div id="tc-cohort" class="tab-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div class="sec-title" style="margin:0">Quản lý Ca thi / Lớp học</div>
+        </div>
 
-            <!-- Form thêm ca thi -->
-            <div class="card" style="margin-bottom: 20px; padding: 16px;">
-                <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:#475569">
-                    ➕ TẠO CA THI BẢO MẬT
-                </div>
-                
-                <div class="grid2">
-                    <div class="fg" style="margin:0">
-                        <label>Tên Ca thi</label>
-                        <input id="t-cohort-name" placeholder="VD: Ca 1 - Sáng 20/10..."/>
-                    </div>
-                    <div class="fg" style="margin:0">
-                        <label>Mã truy cập (Để trống sẽ tự tạo)</label>
-                        <input id="t-cohort-code" placeholder="VD: K6A2B"/>
-                    </div>
-                </div>
-            
-                <div class="grid2" style="margin-top:14px">
-                    <div class="fg" style="margin:0">
-                        <label>Thời gian mở phòng thi</label>
-                        <input type="datetime-local" id="t-cohort-start"/>
-                    </div>
-                    <div class="fg" style="margin:0">
-                        <label>Thời gian đóng phòng thi</label>
-                        <input type="datetime-local" id="t-cohort-end"/>
-                    </div>
-                </div>
-            
-                <div class="fg" style="margin-top:14px">
-                    <label>Chọn các Đề thi được phép làm trong ca này</label>
-                    <div id="t-cohort-exams" style="border:1.5px solid #e5e7eb; border-radius:8px; padding:10px; max-height:150px; overflow-y:auto; background:#f8fafc;">
-                        <!-- Danh sách đề thi sẽ được load bằng JS vào đây -->
-                        <div style="color:#64748b; font-size:13px;">Đang tải danh sách đề thi...</div>
-                    </div>
-                </div>
-            
-                <button class="btn btn-p btn-full" id="btn-add-cohort" style="margin-top:10px;">✅ Tạo Ca thi</button>
+        <!-- Form thêm ca thi -->
+        <div class="card" style="margin-bottom: 20px; padding: 16px;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:#475569">
+                ➕ TẠO CA THI BẢO MẬT
             </div>
-
-            <!-- Bảng danh sách ca thi -->
-            <div class="card" style="padding:10px 16px">
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Tên Ca thi</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody id="t-cohort-list">
-                            <tr><td colspan="3" style="text-align:center; padding: 10px;">Đang tải dữ liệu...</td></tr>
-                        </tbody>
-                    </table>
+            
+            <div class="grid2">
+                <div class="fg" style="margin:0">
+                    <label>Tên Ca thi</label>
+                    <input id="t-cohort-name" placeholder="VD: Ca 1 - Sáng 20/10..."/>
                 </div>
+                <div class="fg" style="margin:0">
+                    <label>Mã truy cập (Để trống sẽ tự tạo)</label>
+                    <input id="t-cohort-code" placeholder="VD: K6A2B"/>
+                </div>
+            </div>
+        
+            <div class="grid2" style="margin-top:14px">
+                <div class="fg" style="margin:0">
+                    <label>Thời gian mở phòng thi</label>
+                    <input type="datetime-local" id="t-cohort-start"/>
+                </div>
+                <div class="fg" style="margin:0">
+                    <label>Thời gian đóng phòng thi</label>
+                    <input type="datetime-local" id="t-cohort-end"/>
+                </div>
+            </div>
+        
+            <div class="fg" style="margin-top:14px">
+                <label>Chọn các Đề thi được phép làm trong ca này</label>
+                <div id="t-cohort-exams" style="border:1.5px solid #e5e7eb; border-radius:8px; padding:10px; max-height:150px; overflow-y:auto; background:#f8fafc;">
+                    <!-- Danh sách đề thi sẽ được load bằng JS vào đây -->
+                    <div style="color:#64748b; font-size:13px;">Đang tải danh sách đề thi...</div>
+                </div>
+            </div>
+        
+            <button class="btn btn-p btn-full" id="btn-add-cohort" style="margin-top:10px;">✅ Tạo Ca thi</button>
+        </div>
+
+        <!-- Bảng danh sách ca thi -->
+        <div class="card" style="padding:10px 16px">
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Tên Ca thi</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="t-cohort-list">
+                        <tr><td colspan="3" style="text-align:center; padding: 10px;">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
-        <!-- KẾT THÚC TAB CA THI -->
+    </div>
+    <!-- KẾT THÚC TAB CA THI -->
   </div><!-- Đây là thẻ đóng của <div id="t-panel"> -->
 </div><!-- Đây là thẻ đóng của <div class="main"> -->
 
