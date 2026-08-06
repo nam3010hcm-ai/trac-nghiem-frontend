@@ -18,8 +18,6 @@ function applyQTypeUI(){
   if(isBlankBased) renderBlankInputs();
 }
 
-// Sinh lại các ô nhập "đáp án đúng" theo số dấu ___ có trong nội dung câu hỏi,
-// giữ nguyên giá trị đã nhập cho các ô còn khớp vị trí (existingVals dùng khi mở sửa câu hỏi cũ)
 function renderBlankInputs(existingVals = null){
   const wrap = $('qf-blanks-wrap');
   const n = countBlanks($('qf-text').value);
@@ -83,6 +81,7 @@ export function openQForm(id = null){
     $('qf-text').value = q.text || '';
     if($('qf-audio')) $('qf-audio').value = q.audio || '';
     if($('qf-image')) $('qf-image').value = q.image || '';
+    if($('qf-explain')) $('qf-explain').value = q.explain || ''; // Nạp giải thích cũ khi sửa
     $('qf-a').value = q.opts?.[0] || '';
     $('qf-b').value = q.opts?.[1] || '';
     $('qf-c').value = q.opts?.[2] || '';
@@ -97,7 +96,7 @@ export function openQForm(id = null){
     applyQTypeUI();
     if(type === 'fill_blank' || type === 'drag_drop') renderBlankInputs(q.blanks || []);
   }else{
-    ['qf-text','qf-audio','qf-image','qf-a','qf-b','qf-c','qf-d','qf-bank','qf-pairs'].forEach(id => { if($(id)) $(id).value = ''; });
+    ['qf-text','qf-audio','qf-image','qf-explain','qf-a','qf-b','qf-c','qf-d','qf-bank','qf-pairs'].forEach(id => { if($(id)) $(id).value = ''; });
     $('qf-ans').value = '0';
     $('qf-type').value = 'mcq_single';
     applyQTypeUI();
@@ -121,6 +120,7 @@ export async function saveQ(){
   if(!text){ alert('Vui lòng nhập nội dung câu hỏi!'); return; }
   const image = $('qf-image') ? $('qf-image').value.trim() : '';
   const audio = $('qf-audio') ? $('qf-audio').value.trim() : '';
+  const explain = $('qf-explain') ? $('qf-explain').value.trim() : ''; // Lấy nội dung giải thích
   const cat = $('qf-cat').value;
   const subcat = $('qf-subcat').value;
 
@@ -162,12 +162,11 @@ export async function saveQ(){
 
   if(editQId){
     const q = state.questions.find(x => x.id === editQId);
-    // Xóa field của loại cũ (vd đổi từ mcq sang fill_blank) rồi gán field mới
     delete q.opts; delete q.ans; delete q.blanks; delete q.bank; delete q.pairs;
-    Object.assign(q, { cat, subcat, text, image, audio, ...fields });
+    Object.assign(q, { cat, subcat, text, image, audio, explain, ...fields }); // Lưu thêm explain
     await setDoc(doc(db, "questions", String(editQId)), q);
   }else{
-    const newQ = { id: state.nextQId++, cat, subcat, text, image, audio, ...fields };
+    const newQ = { id: state.nextQId++, cat, subcat, text, image, audio, explain, ...fields }; // Lưu thêm explain
     state.questions.push(newQ);
     await setDoc(doc(db, "questions", String(newQ.id)), newQ);
   }
@@ -217,6 +216,10 @@ export function renderQuestions(){
     }else if(type === 'matching'){
       answerHTML = (q.pairs || []).map(p => `<span class="abadge ok">${esc(p.left)} → ${esc(p.right)}</span>`).join('');
     }
+
+    // Hiển thị phần giải thích ngay trong danh sách quản trị (nếu có)
+    const explainHTML = q.explain ? `<div style="margin-top:6px; font-size:12px; color:#475569; background:#f8fafc; padding:6px 10px; border-radius:4px; border-left:3px solid #059669;">💡 <b>Giải thích:</b> ${renderRich(q.explain)}</div>` : '';
+
     return `
     <div class="qitem">
       <div class="qrow">
@@ -236,6 +239,7 @@ export function renderQuestions(){
         </div>
       </div>
       <div style="margin-top:8px">${answerHTML}</div>
+      ${explainHTML}
     </div>`;
   }).join('') || '<div class="empty">Không có câu hỏi phù hợp.</div>';
 
@@ -288,12 +292,13 @@ async function importQuestionsFromFile(e){
       const subcat = String(r.subcat || r.Subcat || r['Phần'] || r['Phan'] || '').trim();
       const text = String(r.text || r.Question || r.question || r['Câu hỏi'] || r['Cau hoi'] || '').trim();
       const image = String(r.image || r.Image || r['Hình ảnh'] || '').trim();
+      const explain = String(r.explain || r.Explain || r['Giải thích'] || '').trim();
       const opts = ['A','B','C','D'].map(k => String(r[k] || r[k.toLowerCase()] || '').trim());
       let ansRaw = String(r.ans || r.Answer || r.answer || r['Đáp án'] || r['Dap an'] || 'A').trim().toUpperCase();
       let ans = ['A','B','C','D'].indexOf(ansRaw);
       if(ans < 0 && /^[0-3]$/.test(ansRaw)) ans = parseInt(ansRaw);
       if(!cat || !text || opts.some(x=>!x) || ans < 0) continue;
-      const q = { id: state.nextQId++, cat, subcat, text, image, opts, ans };
+      const q = { id: state.nextQId++, cat, subcat, text, image, explain, opts, ans };
       state.questions.push(q);
       await setDoc(doc(db, "questions", String(q.id)), q);
       added++;
