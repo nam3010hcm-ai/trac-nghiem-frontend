@@ -1,5 +1,5 @@
 // Thêm import các hàm Firebase để lấy danh sách Ca thi
-import { db, collection, getDocs, query, where } from './firebase.js';
+import { db, collection, getDocs } from './firebase.js';
 
 import { initData, state, $, KEYS, shuffle, getPool, esc, mediaHTML, audioHTML, renderRich, typesetMath, isCorrect, formatAnswer, splitBlanks } from './common.js';
 import { populateExamSelect, updateExamDesc } from './exams.js';
@@ -146,12 +146,14 @@ async function startExam(){
           $('btn-start').textContent = 'Đang kiểm tra lịch sử thi...';
           
           try {
-              // Tìm tất cả kết quả của Ca thi này
-              const q = query(collection(db, "results"), where("cohort", "==", cohortName));
-              const snapshot = await getDocs(q);
+              // Tải toàn bộ kết quả và lọc bằng Javascript để tránh lỗi import "query/where"
+              const snapshot = await getDocs(collection(db, "results"));
               
-              // Kiểm tra xem Mã học viên này đã có trong danh sách nộp bài chưa
-              const hasTaken = snapshot.docs.some(docSnap => docSnap.data().sid === studentId);
+              // Kiểm tra xem Mã học viên này đã có điểm trong Ca thi này chưa
+              const hasTaken = snapshot.docs.some(docSnap => {
+                  const data = docSnap.data();
+                  return data.cohort === cohortName && data.sid === studentId;
+              });
               
               if (hasTaken) {
                   alert('❌ Bạn đã hoàn thành bài thi cho Ca thi này rồi. Chế độ Thi Thật chỉ cho phép mỗi học viên thi 1 lần duy nhất!');
@@ -170,6 +172,7 @@ async function startExam(){
           $('btn-start').disabled = false;
           $('btn-start').textContent = 'Bắt đầu làm bài →';
       }
+      //
   }
   // ====================================================
 
