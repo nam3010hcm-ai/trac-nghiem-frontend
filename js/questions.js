@@ -174,8 +174,12 @@ export function openQForm(id = null){
       if(currentFltSubcat) $('qf-subcat').value = currentFltSubcat;
     }else updateQFormSubcat();
   }
+  
   $('qform').style.display = 'block';
   typesetMath($('qform'));
+  
+  // TỰ ĐỘNG CUỘN LÊN FORM MƯỢT MÀ
+  $('qform').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 export function closeQForm(){ $('qform').style.display = 'none'; editQId = null; }
