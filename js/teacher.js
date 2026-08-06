@@ -475,24 +475,55 @@ function renderEqmLists() {
 
     document.getElementById('eqm-selected-count').textContent = qIds.length;
 
-    // Phân loại câu hỏi thành 2 cột: Đã chọn và Chưa chọn
-    const selectedQs = state.questions.filter(q => qIds.includes(q.id));
+    // Lấy danh sách Đã chọn THEO ĐÚNG THỨ TỰ mà giáo viên đã xếp
+    const selectedQs = qIds.map(id => state.questions.find(q => q.id === id)).filter(Boolean);
     const availableQs = state.questions.filter(q => !qIds.includes(q.id) && (filterCat === '' || q.cat === filterCat));
 
-    const renderQItem = (q, isSelected) => `
-        <div style="background:#fff; border:1px solid ${isSelected ? '#a7f3d0' : '#e2e8f0'}; border-radius:6px; padding:8px; display:flex; justify-content:space-between; align-items:start; gap:10px; transition: 0.2s;">
+    // Render cột "Đã chọn" (CÓ NÚT LÊN/XUỐNG)
+    const renderSelectedQItem = (q, index, total) => `
+        <div style="background:#fff; border:1px solid #a7f3d0; border-radius:6px; padding:8px; display:flex; justify-content:space-between; align-items:start; gap:10px; transition: 0.2s; margin-bottom: 8px;">
             <div style="font-size:13px; color:#334155; flex:1;">
-                <b style="color:#64748b">[${q.cat || 'Chưa phân loại'}]</b> ${q.text.substring(0, 60)}${q.text.length > 60 ? '...' : ''}
+                <b style="color:#059669">[Câu ${index + 1}]</b> ${q.text.substring(0, 60)}${q.text.length > 60 ? '...' : ''}
             </div>
-            <button class="btn btn-sm" onclick="window.${isSelected ? 'removeQFromExam' : 'addQToExam'}(${q.id})" style="background:${isSelected ? '#fee2e2' : '#e0e7ff'}; color:${isSelected ? '#ef4444' : '#4f46e5'}; border:none; padding:4px 8px; font-weight:bold; cursor:pointer;">
-                ${isSelected ? '✖ Bỏ' : '➕ Thêm'}
-            </button>
+            <div style="display:flex; gap:4px;">
+                <button class="btn btn-sm" onclick="window.moveQ(${index}, -1)" ${index === 0 ? 'disabled' : ''} style="padding:2px 6px;">⬆️</button>
+                <button class="btn btn-sm" onclick="window.moveQ(${index}, 1)" ${index === total - 1 ? 'disabled' : ''} style="padding:2px 6px;">⬇️</button>
+                <button class="btn btn-sm" onclick="window.removeQFromExam(${q.id})" style="background:#fee2e2; color:#ef4444; border:none; padding:2px 6px; font-weight:bold;">✖</button>
+            </div>
         </div>
     `;
 
-    document.getElementById('eqm-selected-list').innerHTML = selectedQs.length ? selectedQs.map(q => renderQItem(q, true)).join('') : '<div style="font-size:13px; color:#94a3b8; text-align:center;">Đề thi chưa có câu hỏi nào</div>';
-    document.getElementById('eqm-available-list').innerHTML = availableQs.length ? availableQs.map(q => renderQItem(q, false)).join('') : '<div style="font-size:13px; color:#94a3b8; text-align:center;">Không có câu hỏi phù hợp</div>';
+    // Render cột "Ngân hàng"
+    const renderAvailableQItem = (q) => `
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:8px; display:flex; justify-content:space-between; align-items:start; gap:10px; transition: 0.2s; margin-bottom: 8px;">
+            <div style="font-size:13px; color:#334155; flex:1;">
+                <b style="color:#64748b">[${q.subcat || q.cat || 'Chưa phân loại'}]</b> ${q.text.substring(0, 60)}${q.text.length > 60 ? '...' : ''}
+            </div>
+            <button class="btn btn-sm" onclick="window.addQToExam(${q.id})" style="background:#e0e7ff; color:#4f46e5; border:none; padding:4px 8px; font-weight:bold; cursor:pointer;">➕ Thêm</button>
+        </div>
+    `;
+
+    document.getElementById('eqm-selected-list').innerHTML = selectedQs.length ? selectedQs.map((q, i) => renderSelectedQItem(q, i, selectedQs.length)).join('') : '<div style="font-size:13px; color:#94a3b8; text-align:center;">Đề thi chưa có câu hỏi nào</div>';
+    document.getElementById('eqm-available-list').innerHTML = availableQs.length ? availableQs.map(q => renderAvailableQItem(q)).join('') : '<div style="font-size:13px; color:#94a3b8; text-align:center;">Không có câu hỏi phù hợp</div>';
 }
+
+// HÀM ĐẢM NHIỆM VIỆC ĐẢO VỊ TRÍ CÂU HỎI
+window.moveQ = async (index, direction) => {
+    const exam = state.exams.find(e => e.id === currentEqmExamId);
+    if(!exam || !exam.qIds) return;
+    
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= exam.qIds.length) return;
+    
+    // Hoán đổi vị trí trong mảng
+    const temp = exam.qIds[index];
+    exam.qIds[index] = exam.qIds[newIndex];
+    exam.qIds[newIndex] = temp;
+    
+    // Lưu thứ tự mới lên Firebase
+    await updateDoc(doc(db, "exams", String(exam.id)), { qIds: exam.qIds });
+    renderEqmLists();
+};
 
 // Bấm thêm câu hỏi
 window.addQToExam = async (qId) => {
