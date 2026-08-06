@@ -68,7 +68,36 @@ async function loadActiveCohorts() {
   }
 }
 // ==========================================
+// HÀM KIỂM TRA MÃ CA THI VÀ LOAD ĐỀ THI TƯƠNG ỨNG
+// ==========================================
+function verifyAndLoadExams() {
+    const cohortName = $('s-cohort').value;
+    const codeInput = $('s-cohort-code').value.trim().toUpperCase();
+    const examSelect = $('s-exam');
+    
+    // Mặc định khóa và làm trống danh sách đề thi
+    examSelect.innerHTML = '<option value="" disabled selected>-- Nhập đúng mã ca thi để tải đề --</option>';
+    if ($('s-exam-desc')) $('s-exam-desc').textContent = '';
 
+    if (!cohortName) return;
+    const cohort = activeCohortsData[cohortName];
+    if (!cohort) return;
+
+    // KHI MÃ NHẬP VÀO KHỚP CHÍNH XÁC VỚI MÃ CA THI
+    if (codeInput === cohort.code) {
+        const allowed = cohort.allowedExams || [];
+        // Lọc ra các đề thi thuộc ca thi này và không bị ẩn
+        const availableExams = state.exams.filter(e => allowed.includes(e.id) && !e.isHidden);
+        
+        if (availableExams.length === 0) {
+            examSelect.innerHTML = '<option value="" disabled selected>-- Ca thi này chưa có đề thi --</option>';
+        } else {
+            examSelect.innerHTML = '<option value="" disabled selected>-- Chọn đề thi --</option>' + 
+                availableExams.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        }
+    }
+}
+//Kết thúc hàm kiểm tra
 function startExam(){
   const name = $('s-name').value.trim();
   if(!name){ alert('Vui lòng nhập họ tên!'); return; }
@@ -566,9 +595,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // TẢI DANH SÁCH CA THI NGAY KHI VÀO TRANG
   loadActiveCohorts(); 
-  
-  populateExamSelect();
   maybeResume();
+  // THÊM 2 DÒNG NÀY: Lắng nghe sự kiện gõ mã bảo mật hoặc đổi ca thi
+  $('s-cohort').addEventListener('change', verifyAndLoadExams);
+  $('s-cohort-code').addEventListener('input', verifyAndLoadExams);
+  
   $('s-exam').addEventListener('change', updateExamDesc);
   $('btn-start').addEventListener('click', startExam);
   $('btn-next').addEventListener('click', nextQ);
