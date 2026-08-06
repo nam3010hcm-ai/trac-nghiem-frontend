@@ -120,9 +120,23 @@ export function formatAnswer(q, userAns, showCorrect=false){
   return '';
 }
 
-export function renderRich(text){
-  // Cho phép MathJax xử lý $...$, \(...\), \[...\]. Nội dung vẫn được escape HTML để an toàn.
-  return esc(text).replace(/\n/g, '<br>');
+export function renderRich(txt) {
+    if (!txt) return '';
+    
+    // 1. Đưa văn bản qua hàm bảo mật (biến < thành &lt; ...)
+    let s = esc(txt);
+    
+    // 2. Mở khóa (Khôi phục) riêng cho các thẻ định dạng văn bản
+    s = s.replace(/&lt;b&gt;/gi, '<b>').replace(/&lt;\/b&gt;/gi, '</b>');
+    s = s.replace(/&lt;i&gt;/gi, '<i>').replace(/&lt;\/i&gt;/gi, '</i>');
+    s = s.replace(/&lt;u&gt;/gi, '<u>').replace(/&lt;\/u&gt;/gi, '</u>');
+    
+    // Mở khóa cho thẻ màu sắc (Xử lý mọi trường hợp dấu nháy bị mã hóa bởi hàm esc)
+    s = s.replace(/&lt;span style=(?:'|"|&quot;|&#39;|&#039;)color:\s*([a-zA-Z0-9#]+)(?:'|"|&quot;|&#39;|&#039;)&gt;/gi, '<span style="color:$1">');
+    s = s.replace(/&lt;\/span&gt;/gi, '</span>');
+    
+    // 3. Giữ nguyên tính năng xuống dòng
+    return s.replace(/\n/g, '<br>');
 }
 
 export function typesetMath(root=document.body){
