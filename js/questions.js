@@ -64,12 +64,49 @@ function ensureQuestionTools(){
     const t = $('qf-type').value;
     if(t === 'fill_blank' || t === 'drag_drop') renderBlankInputs();
   });
+
+  // --- XỬ LÝ UPLOAD VÀ XEM TRƯỚC ẢNH CHỌN TỪ MÁY ---
+  const imgFile = $('qf-image-file');
+  if (imgFile && !imgFile.dataset.bound) {
+      imgFile.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) {
+              $('image-preview').innerHTML = '';
+              $('qf-image').value = '';
+              return;
+          }
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+              const base64Str = ev.target.result;
+              // 1. Tự động gắn dữ liệu vào ô input lưu trữ
+              $('qf-image').value = base64Str; 
+              // 2. Hiển thị ảnh xem trước
+              $('image-preview').innerHTML = `<img src="${base64Str}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">`;
+          };
+          reader.readAsDataURL(file);
+      });
+      imgFile.dataset.bound = "true";
+  }
+
+  // --- XỬ LÝ XEM TRƯỚC KHI GIÁO VIÊN DÁN LINK ẢNH ---
+  const imgInput = $('qf-image');
+  if (imgInput && !imgInput.dataset.bound) {
+      imgInput.addEventListener('input', (e) => {
+          const val = e.target.value.trim();
+          $('image-preview').innerHTML = val ? `<img src="${val}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">` : '';
+      });
+      imgInput.dataset.bound = "true";
+  }
 }
 
 export function openQForm(id = null){
   editQId = id;
   $('qform-title').textContent = id ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới';
   ['qf-ans-m0','qf-ans-m1','qf-ans-m2','qf-ans-m3'].forEach(cid => { if($(cid)) $(cid).checked = false; });
+  
+  // Reset input file ảnh
+  if($('qf-image-file')) $('qf-image-file').value = '';
+
   if(id){
     const q = state.questions.find(x => x.id === id);
     if(!q) return;
@@ -80,7 +117,15 @@ export function openQForm(id = null){
     $('qf-subcat').value = q.subcat || '';
     $('qf-text').value = q.text || '';
     if($('qf-audio')) $('qf-audio').value = q.audio || '';
-    if($('qf-image')) $('qf-image').value = q.image || '';
+    
+    // Nạp ảnh cũ và hiển thị preview
+    if($('qf-image')) {
+        $('qf-image').value = q.image || '';
+        if($('image-preview')) {
+            $('image-preview').innerHTML = q.image ? `<img src="${q.image}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">` : '';
+        }
+    }
+
     if($('qf-explain')) $('qf-explain').value = q.explain || ''; // Nạp giải thích cũ khi sửa
     $('qf-a').value = q.opts?.[0] || '';
     $('qf-b').value = q.opts?.[1] || '';
@@ -97,6 +142,7 @@ export function openQForm(id = null){
     if(type === 'fill_blank' || type === 'drag_drop') renderBlankInputs(q.blanks || []);
   }else{
     ['qf-text','qf-audio','qf-image','qf-explain','qf-a','qf-b','qf-c','qf-d','qf-bank','qf-pairs'].forEach(id => { if($(id)) $(id).value = ''; });
+    if($('image-preview')) $('image-preview').innerHTML = ''; // Làm sạch preview
     $('qf-ans').value = '0';
     $('qf-type').value = 'mcq_single';
     applyQTypeUI();
