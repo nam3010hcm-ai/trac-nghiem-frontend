@@ -1,7 +1,6 @@
 import { db, setDoc, doc, deleteDoc } from './firebase.js';
 import { state, $, esc, getPool } from './common.js';
 import { updateEFormSubcat } from './categories.js';
-
 export function populateExamSelect(){
   const sel = $('s-exam');
   if(!sel) return;
@@ -84,12 +83,29 @@ export async function saveExam(){
   populateExamSelect();
 }
 
-export async function deleteExam(id){
-  if(!confirm('Xóa đề thi này?')) return;
-  state.exams = state.exams.filter(e => e.id !== id);
-  await deleteDoc(doc(db, "exams", String(id)));
-  renderExams();
-  populateExamSelect();
+export async function deleteExam(id) {
+    if (!confirm("⚠️ Bạn có chắc chắn muốn xóa đề thi này không?")) return;
+    
+    try {
+        // 1. Xóa đề thi trên cơ sở dữ liệu Firebase
+        await deleteDoc(doc(db, "exams", String(id)));
+        
+        // 2. Xóa khỏi bộ nhớ tạm (state) của trình duyệt
+        state.exams = state.exams.filter(e => e.id !== id);
+        
+        // 3. Cập nhật lại giao diện danh sách đề thi
+        renderExams();
+        
+        // 4. (Quan trọng) Cập nhật lại danh sách đề thi trong Tab "Ca thi"
+        if (typeof window.populateCohortExams === 'function') {
+            window.populateCohortExams();
+        }
+        
+        alert("✅ Xóa đề thi thành công!");
+    } catch (error) {
+        console.error("Lỗi khi xóa đề thi:", error);
+        alert("❌ Lỗi: Không thể xóa đề thi. Vui lòng nhấn F12 để xem chi tiết trong thẻ Console.");
+    }
 }
 
 export async function toggleExamVisibility(id){
