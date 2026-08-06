@@ -314,6 +314,9 @@ async function loadCohorts() {
             const id = docSnap.id;
             const isActive = data.status === 'active';
             
+            // XÁC ĐỊNH CHẾ ĐỘ THI
+            const modeText = data.mode === 'exam' ? '📝 Thi thật' : '📖 Ôn luyện';
+            
             // Format ngày tháng hiển thị
             const sTime = data.startTime ? new Date(data.startTime).toLocaleString('vi-VN') : 'Không giới hạn';
             const eTime = data.endTime ? new Date(data.endTime).toLocaleString('vi-VN') : 'Không giới hạn';
@@ -322,6 +325,7 @@ async function loadCohorts() {
             tr.innerHTML = `
                 <td>
                     <div style="font-weight: 700; color:#1e293b;">${data.name}</div>
+                    <div style="font-size:12px; color:#f59e0b; font-weight:600; margin-top:4px;">Chế độ: ${modeText}</div>
                     <div style="font-size:12px; color:#64748b; margin-top:4px;">Từ: ${sTime}</div>
                     <div style="font-size:12px; color:#64748b;">Đến: ${eTime}</div>
                     <div style="font-size:12px; color:#10b981; font-weight:600; margin-top:4px;">
@@ -355,6 +359,7 @@ const btnAddCohort = document.getElementById("btn-add-cohort");
 if (btnAddCohort) {
     btnAddCohort.addEventListener("click", async () => {
         const name = document.getElementById("t-cohort-name").value.trim();
+        const mode = document.getElementById("t-cohort-mode").value;
         let code = document.getElementById("t-cohort-code").value.trim();
         const startTime = document.getElementById("t-cohort-start").value;
         const endTime = document.getElementById("t-cohort-end").value;
@@ -380,6 +385,7 @@ if (btnAddCohort) {
                 startTime: startTime, // Lưu định dạng ISO
                 endTime: endTime,
                 allowedExams: checkedExams, // Mảng ID đề thi
+                mode: mode,
                 status: "active",
                 createdAt: Date.now()
             });
