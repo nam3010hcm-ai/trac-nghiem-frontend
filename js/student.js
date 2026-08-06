@@ -115,8 +115,20 @@ function startExam(){
   const exam = state.exams.find(e => e.id === eid);
   //
   if(!exam){ alert('Không tìm thấy đề thi hoặc chưa chọn đề!'); return; }
+  
   const pool = getPool(exam);
-  const qs = shuffle(pool).slice(0, Math.min(exam.count, pool.length));
+  let qs;
+  
+  // KIỂM TRA: Nếu đề thi có danh sách câu hỏi thủ công từ giáo viên (qIds) thì GIỮ NGUYÊN THỨ TỰ.
+  // Ngược lại nếu là đề bốc tự động thì lấy ngẫu nhiên rồi SẮP XẾP LẠI THEO PART (dựa vào subcat).
+  if (exam.qIds && exam.qIds.length > 0) {
+      qs = pool;
+  } else {
+      qs = shuffle(pool).sort((a, b) => (a.subcat || '').localeCompare(b.subcat || ''));
+  }
+  
+  qs = qs.slice(0, Math.min(exam.count, pool.length));
+  //
   if(!qs.length){ alert('Đề thi chưa có câu hỏi phù hợp!'); return; }
   
   // LƯU THÊM COHORT VÀO qState
@@ -463,7 +475,16 @@ function goHome(){ clearInterval(qState.timer); clearPersist(); showScreen('sc-h
 function retake(){
   qState.idx = 0; qState.answers = [];
   const pool = getPool(qState.exam);
-  qState.qs = shuffle(pool).slice(0, Math.min(qState.exam.count, pool.length));
+  
+  // Áp dụng chung logic giữ nguyên thứ tự Part như lúc mới bắt đầu thi
+  if (qState.exam.qIds && qState.exam.qIds.length > 0) {
+      qState.qs = pool;
+  } else {
+      qState.qs = shuffle(pool).sort((a, b) => (a.subcat || '').localeCompare(b.subcat || ''));
+  }
+  
+  qState.qs = qState.qs.slice(0, Math.min(qState.exam.count, pool.length));
+  
   qState.startTime = Date.now(); persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
 }
 
