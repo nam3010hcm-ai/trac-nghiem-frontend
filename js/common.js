@@ -123,19 +123,24 @@ export function formatAnswer(q, userAns, showCorrect=false){
 export function renderRich(txt) {
     if (!txt) return '';
     
-    // 1. Đưa văn bản qua hàm bảo mật (biến < thành &lt; ...)
-    let s = esc(txt);
-    
-    // 2. Mở khóa (Khôi phục) riêng cho các thẻ định dạng văn bản
+    // 1. Tự mã hóa HTML để kiểm soát 100% (Không dùng hàm esc cũ nữa)
+    let s = String(txt)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    // 2. Mở khóa (Khôi phục) riêng cho các thẻ định dạng B, I, U
     s = s.replace(/&lt;b&gt;/gi, '<b>').replace(/&lt;\/b&gt;/gi, '</b>');
     s = s.replace(/&lt;i&gt;/gi, '<i>').replace(/&lt;\/i&gt;/gi, '</i>');
     s = s.replace(/&lt;u&gt;/gi, '<u>').replace(/&lt;\/u&gt;/gi, '</u>');
     
-    // Mở khóa cho thẻ màu sắc (Xử lý mọi trường hợp dấu nháy bị mã hóa bởi hàm esc)
-    s = s.replace(/&lt;span style=(?:'|"|&quot;|&#39;|&#039;)color:\s*([a-zA-Z0-9#]+)(?:'|"|&quot;|&#39;|&#039;)&gt;/gi, '<span style="color:$1">');
+    // 3. Mở khóa cho thẻ SPAN đổi màu (Bao trọn mọi loại dấu nháy)
+    s = s.replace(/&lt;span style=(&#39;|&quot;|&apos;|"|')color:\s*([a-zA-Z0-9#]+)\1&gt;/gi, '<span style="color:$2">');
     s = s.replace(/&lt;\/span&gt;/gi, '</span>');
     
-    // 3. Giữ nguyên tính năng xuống dòng
+    // 4. Trả lại thẻ xuống dòng
     return s.replace(/\n/g, '<br>');
 }
 
