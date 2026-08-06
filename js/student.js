@@ -302,6 +302,32 @@ function renderMatching(q){
     </div>
     <button class="btn btn-p btn-full" id="btn-confirm-match" style="margin-top:16px">Xác nhận đáp án</button>`;
 }
+function renderEssay(q){
+    const savedAns = qState.answers[qState.idx] || '';
+    $('q-opts').innerHTML = `
+        <textarea id="essay-input" style="width:100%; height:200px; padding:15px; border:2px solid #cbd5e1; border-radius:8px; font-size:15px; font-family:inherit; line-height:1.6; resize:vertical; transition:0.2s;" placeholder="Nhập bài viết của bạn tại đây...">${esc(savedAns)}</textarea>
+        <div style="font-size:12px; color:#64748b; margin-top:8px; display:flex; justify-content:space-between;">
+            <span>✍️ Viết tự do. Hệ thống sẽ tự động lưu.</span>
+            <span>Số từ đã viết: <b id="word-count" style="color:#3b82f6;">${savedAns ? savedAns.trim().split(/\s+/).length : 0}</b></span>
+        </div>
+    `;
+
+    // Tự động đếm số từ và lưu bài
+    $('essay-input').addEventListener('input', (e) => {
+        const text = e.target.value;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        $('word-count').textContent = words;
+        
+        if(qState.mode === 'exam') {
+            qState.answers[qState.idx] = text;
+            persist();
+        }
+    });
+
+    if (qState.mode !== 'exam') {
+        $('q-opts').insertAdjacentHTML('beforeend', '<button class="btn btn-p btn-full" id="btn-confirm-essay" style="margin-top:16px">Lưu câu trả lời</button>');
+    }
+}
 
 function renderQ(){
   const {qs, idx} = qState;
@@ -359,6 +385,9 @@ function renderQ(){
   }else if(type === 'matching'){
     $('q-text').innerHTML = `<div style="font-weight:600;margin-bottom:4px">🔗 Ghép các cặp tương ứng:</div>${mediaHTML(q.image)}${audioHTML(q.audio)}`;
     renderMatching(q);
+  } else if(type === 'essay'){ // <--- THÊM ĐOẠN NÀY
+      $('q-text').innerHTML = `<div style="font-weight:600;margin-bottom:4px">📝 Tự luận (Writing):</div>${renderRich(q.text)}${mediaHTML(q.image)}${audioHTML(q.audio)}`;
+      renderEssay(q);
   }else{
     $('q-text').innerHTML = `<div>${renderRich(q.text)}</div>${mediaHTML(q.image)}${audioHTML(q.audio)}`;
     if(type === 'mcq_multi') renderMCQMulti(q);
@@ -662,7 +691,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(e.target.id === 'btn-confirm-fill') confirmFillBlank();
     if(e.target.id === 'btn-confirm-drag') confirmDragDrop();
     if(e.target.id === 'btn-confirm-match') confirmMatching();
-
+    // Bắt sự kiện nút lưu tự luận (trong chế độ Ôn luyện):
+    if(e.target.id === 'btn-confirm-essay') {
+      const val = document.getElementById('essay-input').value;
+      qState.answers[qState.idx] = val;
+      persist();
+      
+      const fb = $('q-fb');
+      fb.style.display = 'block';
+      fb.className = 'fb fb-ok';
+      fb.innerHTML = '💾 Đã lưu bài. Phần này sẽ do giáo viên chấm điểm trực tiếp.';
+      if(qState.idx + 1 < qState.qs.length) $('btn-next').style.display = 'inline-block';
+      else $('btn-finish').style.display = 'inline-block';
+    }
+    
     const chip = e.target.closest('.bank-chip');
     if(chip){
       if(chip.disabled) return;
