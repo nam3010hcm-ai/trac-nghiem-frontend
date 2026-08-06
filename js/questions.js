@@ -65,7 +65,7 @@ function ensureQuestionTools(){
     if(t === 'fill_blank' || t === 'drag_drop') renderBlankInputs();
   });
 
-  // --- XỬ LÝ UPLOAD VÀ NÉN ẢNH (TỰ ĐỘNG THU NHỎ DUNG LƯỢNG) ---
+  // --- XỬ LÝ UPLOAD VÀ NÉN ẢNH TỪ MÁY ---
   const imgFile = $('qf-image-file');
   if (imgFile && !imgFile.dataset.bound) {
       imgFile.addEventListener('change', (e) => {
@@ -75,15 +75,13 @@ function ensureQuestionTools(){
               $('qf-image').value = '';
               return;
           }
-          
           const reader = new FileReader();
           reader.onload = (ev) => {
               const img = new Image();
               img.onload = () => {
-                  // Thuật toán nén ảnh bằng Canvas
                   const canvas = document.createElement('canvas');
-                  const MAX_WIDTH = 800; // Giới hạn chiều rộng
-                  const MAX_HEIGHT = 800; // Giới hạn chiều cao
+                  const MAX_WIDTH = 800; 
+                  const MAX_HEIGHT = 800; 
                   let width = img.width;
                   let height = img.height;
 
@@ -97,7 +95,6 @@ function ensureQuestionTools(){
                   const ctx = canvas.getContext('2d');
                   ctx.drawImage(img, 0, 0, width, height);
                   
-                  // Xuất ra Base64 định dạng JPEG chất lượng 70% (Siêu nhẹ)
                   const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
                   
                   $('qf-image').value = compressedBase64; 
@@ -117,6 +114,29 @@ function ensureQuestionTools(){
           $('image-preview').innerHTML = val ? `<img src="${val}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">` : '';
       });
       imgInput.dataset.bound = "true";
+  }
+
+  // --- XỬ LÝ MỞ MODAL THƯ VIỆN ẢNH KHI BẤM NÚT "CHỌN TỪ THƯ VIỆN" ---
+  const btnOpenGal = $('btn-open-gallery');
+  if(btnOpenGal && !btnOpenGal.dataset.bound) {
+      btnOpenGal.addEventListener('click', () => {
+          const modal = $('modal-select-gallery');
+          if (modal) {
+              modal.style.display = 'flex';
+              // Tải lại dữ liệu thư viện để đảm bảo ảnh mới nhất hiển thị
+              if(typeof window.loadGallery === 'function') window.loadGallery(); 
+          }
+      });
+      btnOpenGal.dataset.bound = "true";
+  }
+
+  const btnCloseGal = $('btn-close-gallery-modal');
+  if(btnCloseGal && !btnCloseGal.dataset.bound) {
+      btnCloseGal.addEventListener('click', () => {
+          const modal = $('modal-select-gallery');
+          if (modal) modal.style.display = 'none';
+      });
+      btnCloseGal.dataset.bound = "true";
   }
 }
 
@@ -141,7 +161,6 @@ export function openQForm(id = null){
     $('qf-text').value = q.text || '';
     if($('qf-audio')) $('qf-audio').value = q.audio || '';
     
-    // Phục hồi hình ảnh nếu câu này có ảnh
     if(q.image) {
         $('qf-image').value = q.image;
         $('image-preview').innerHTML = `<img src="${q.image}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">`;
