@@ -232,7 +232,14 @@ function lockAndShowFeedback(qIdx, userAns){
   const fb = document.getElementById(`q-fb-${qIdx}`);
   if(fb) {
       fb.style.display = 'block'; fb.className = 'fb ' + (ok ? 'fb-ok' : 'fb-bad');
-      fb.innerHTML = ok ? '✅ Chính xác!' : `❌ Chưa đúng! Đáp án: ${formatAnswer(q, null, true)}`;
+      let html = ok ? '✅ Chính xác!' : `❌ Chưa đúng! Đáp án: ${formatAnswer(q, null, true)}`;
+
+      // THÊM: Hiện giải thích nếu có
+      if (q.explain) {
+          html += `<div style="margin-top: 10px; font-size: 13px; color: #334155; padding-top: 10px; border-top: 1px dashed ${ok ? '#86efac' : '#fca5a5'}; line-height: 1.5;">💡 <b>Giải thích:</b> ${renderRich(q.explain)}</div>`;
+      }
+
+      fb.innerHTML = html;
       typesetMath(fb);
   }
 }
@@ -369,8 +376,13 @@ async function finishExam(){
   $('btn-retake').style.display = (qState.mode === 'exam') ? 'none' : 'block';
   $('r-review').innerHTML = qs.map((q,i)=>{
     const ua = answers[i], ok = isCorrect(q, ua);
+    
+    // THÊM: Gắn thêm phần giải thích khi xem lại bài
+    let expHtml = q.explain ? `<div style="margin-top:6px; font-size:13px; color:#475569; background:#f8fafc; padding:8px; border-radius:6px; border-left:3px solid #3b82f6;">💡 <b>Giải thích:</b> ${renderRich(q.explain)}</div>` : '';
+
     return `<div class="ri"><b>Câu ${i+1}: ${renderRich(q.text)}</b>
       <div>Bạn chọn/Viết: ${q.type==='essay' ? `<pre style="white-space:pre-wrap; background:#f1f5f9; padding:10px;">${esc(ua)}</pre>` : formatAnswer(q, ua, false)}</div>
+      ${expHtml}
     </div>`;
   }).join('');
   showScreen('sc-result'); typesetMath($('sc-result'));
