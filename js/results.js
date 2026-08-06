@@ -50,16 +50,30 @@ export function renderResults(){
   // 5. Vẽ bảng 9 cột chuẩn khớp với file HTML
   listTbody.innerHTML = arr.map((r, i) => {
     const color = r.pct >= 80 ? '#1D9E75' : r.pct >= 60 ? '#f59e0b' : '#ef4444';
+    
+    // Kiểm tra xem bài này có câu Tự luận nào không? (kiểm tra r.answers nếu bạn có lưu, hoặc cứ hiển thị nút chấm cho phép GV kiểm tra)
+    // Để đơn giản, ta hiện nút "Chấm / Xem bài" cho mọi người
+    const manualScore = r.manualScore || 0; // Điểm tự luận đã chấm
+    const finalScore = (r.score || 0) + manualScore; // Tổng điểm (Trắc nghiệm + Tự luận)
+
     return `<tr>
       <td style="text-align:center">${i + 1}</td>
       <td>${esc(r.sid || '')}</td>
       <td><div style="font-weight:600;color:#1e293b">${esc(r.student)}</div></td>
       <td style="color:#059669; font-weight:600;">${esc(r.cohort || 'Thi tự do')}</td>
       <td><div style="font-size:13px">${esc(r.exam)}</div></td>
-      <td style="text-align:center"><div style="font-weight:700;color:${color};font-size:15px">${r.score}đ</div><div style="font-size:11px;color:#64748b">${r.pct}%</div></td>
+      <td style="text-align:center">
+          <div style="font-weight:700;color:${color};font-size:15px">${finalScore}đ</div>
+          <div style="font-size:11px;color:#64748b">TN: ${r.score}đ | TL: ${manualScore}đ</div>
+      </td>
       <td style="text-align:center"><div style="font-size:13px;color:#475569">${r.correct} / ${r.total}</div></td>
-      <td style="text-align:center"><div style="font-size:12px;color:#475569">${r.time ? Math.floor(r.time / 60) + 'p ' + (r.time % 60) + 's' : ''}</div></td>
-      <td><div style="font-size:12px;color:#64748b">${esc(r.at || 'N/A')}</div></td>
+      <td style="text-align:center"><div style="font-size:12px;color:#475569">${r.time ? Math.floor(r.time/60)+'p '+(r.time%60)+'s' : ''}</div></td>
+      <td style="display:flex; flex-direction:column; gap:4px; text-align:center;">
+          <div style="font-size:11px;color:#64748b">${esc(r.at || 'N/A')}</div>
+          <button class="btn btn-sm" onclick="window.openGradeModal('${r.id || ''}')" style="background:#e0e7ff; color:#4f46e5; border:1px solid #c7d2fe;">
+              ✏️ Chấm bài
+          </button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -70,7 +84,7 @@ export async function clearResults(){
   for(const docSnap of snap.docs) await deleteDoc(docSnap.ref);
   state.results = [];
   renderResults();
-}
+} // renderResults
 
 export function exportCSV(){
   // Chỉ xuất ra Excel những kết quả đang được lọc
