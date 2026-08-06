@@ -133,6 +133,8 @@ function startExam(){
   
   // LƯU THÊM COHORT VÀO qState
   // LƯU THÊM COHORT VÀO qState BẰNG BIẾN CHỮ cohortName
+  const examMode = cohort && cohort.mode === 'exam' ? 'exam' : 'practice';
+
   qState = { 
       exam, 
       student: {
@@ -144,7 +146,8 @@ function startExam(){
       idx: 0, 
       answers: [], 
       startTime: Date.now(), 
-      timer: null 
+      timer: null,
+      mode: examMode // <-- LƯU CHẾ ĐỘ THI
   };
   
   persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
@@ -171,30 +174,42 @@ function startTimer(){
 }
 
 function renderMCQSingle(q){
-  $('q-opts').innerHTML = (q.opts || []).map((o,i)=>`
-    <button class="opt answer-btn" data-idx="${i}">
+  const savedAns = qState.answers[qState.idx];
+  $('q-opts').innerHTML = (q.opts || []).map((o,i)=>{
+    const isSel = qState.mode === 'exam' && savedAns === i;
+    const style = isSel ? 'border:2px solid #3b82f6; background:#eff6ff' : '';
+    return `<button class="opt answer-btn" data-idx="${i}" style="${style}">
       <span class="okey">${KEYS[i]}</span>
       <span>${renderRich(o)}</span>
-    </button>`).join('');
+    </button>`;
+  }).join('');
 }
 
 function renderMCQMulti(q){
-  $('q-opts').innerHTML = (q.opts || []).map((o,i)=>`
-    <button class="opt answer-btn multi" data-idx="${i}">
+  const savedAns = qState.answers[qState.idx] || [];
+  if(qState.mode === 'exam' && savedAns.length) savedAns.forEach(v => multiSelected.add(v));
+  
+  $('q-opts').innerHTML = (q.opts || []).map((o,i)=>{
+    const isSel = multiSelected.has(i);
+    const style = isSel ? 'border:2px solid #3b82f6; background:#eff6ff' : '';
+    return `<button class="opt answer-btn multi ${isSel ? 'selected' : ''}" data-idx="${i}" style="${style}">
       <span class="okey">${KEYS[i]}</span>
       <span>${renderRich(o)}</span>
-    </button>`).join('') +
-    `<div style="font-size:12px;color:#6b7280;margin:4px 0 10px">Có thể chọn nhiều đáp án đúng.</div>
-    <button class="btn btn-p btn-full" id="btn-confirm-multi">Xác nhận đáp án</button>`;
+    </button>`;
+  }).join('') +
+  `<div style="font-size:12px;color:#6b7280;margin:4px 0 10px">Có thể chọn nhiều đáp án đúng.</div>
+  <button class="btn btn-p btn-full" id="btn-confirm-multi">Xác nhận đáp án</button>`;
 }
 
 function renderFillBlank(q){
   const parts = splitBlanks(q.text);
+  const savedAns = qState.answers[qState.idx] || [];
   let html = '<div class="fillblank-sentence">';
   parts.forEach((seg,i) => {
     html += renderRich(seg);
     if(i < parts.length - 1){
-      html += `<input class="blank-input" data-idx="${i}" type="text" autocomplete="off" placeholder="...">`;
+      const val = savedAns[i] !== undefined ? esc(savedAns[i]) : '';
+      html += `<input class="blank-input" data-idx="${i}" type="text" autocomplete="off" placeholder="..." value="${val}">`;
     }
   });
   html += '</div><button class="btn btn-p btn-full" id="btn-confirm-fill" style="margin-top:16px">Xác nhận đáp án</button>';
@@ -242,14 +257,43 @@ function renderQ(){
   matchSelectedLeft = null;
   matchPairs = {};
 
+  const isExam = qState.mode === 'exam';
+  
+  if (isExam) {
+      $('exam-nav-palette').style.display = 'block';
+      $('q-live').style.display = 'none'; // Ẩn "Đúng/Sai" khi thi
+      
+      $('q-nav-grid').innerHTML = qs.map((_, i) => {
+          let isAns = false;
+          const a = qState.answers[i];
+          if(a !== undefined && a !== null) {
+              if(Array.isArray(a)) isAns = a.length > 0 && a.some(x => x !== '');
+              else isAns = String(a).trim() !== '';
+          }
+          
+          const bg = i === idx ? '#3b82f6' : (isAns ? '#10b981' : '#e2e8f0');
+          const col = i === idx || isAns ? '#fff' : '#334155';
+          return `<button class="btn-qnav" data-idx="${i}" style="width:36px; height:36px; border-radius:6px; border:none; cursor:pointer; font-weight:bold; background:${bg}; color:${col}">${i+1}</button>`;
+      }).join('');
+
+      $('btn-prev').style.display = idx > 0 ? 'inline-block' : 'none';
+      $('btn-next').style.display = idx < qs.length - 1 ? 'inline-block' : 'none';
+      $('btn-finish').style.display = 'inline-block';
+  } else {
+      $('exam-nav-palette').style.display = 'none';
+      $('btn-prev').style.display = 'none';
+  }
+
   $('q-progress').textContent = `Câu ${idx+1}/${qs.length}`;
   $('q-pbar').style.width = `${(idx+1)/qs.length*100}%`;
   $('q-cat').textContent = q.subcat || q.cat || '';
   const cor = qState.answers.filter((a,i)=>isCorrect(qs[i], a)).length;
   $('q-live').textContent = `Đúng: ${cor}/${idx}`;
   $('q-fb').style.display = 'none';
-  $('btn-next').style.display = 'none';
-  $('btn-finish').style.display = 'none';
+  if (!isExam) {
+    $('btn-next').style.display = 'none';
+    $('btn-finish').style.display = 'none';
+  }
 
   if(type === 'fill_blank'){
     $('q-text').innerHTML = `<div style="font-weight:600;margin-bottom:4px">✏️ Điền vào chỗ trống:</div>${mediaHTML(q.image)}${audioHTML(q.audio)}`;
@@ -271,6 +315,14 @@ function renderQ(){
 function lockAndShowFeedback(q, userAns){
   qState.answers[qState.idx] = userAns;
   persist();
+  
+  // NẾU LÀ THI THẬT -> Lưu đáp án, cập nhật UI và KHÔNG KHÓA, KHÔNG HIỆN ĐÁP ÁN ĐÚNG/SAI
+  if (qState.mode === 'exam') {
+      renderQ(); 
+      return; 
+  }
+  
+  // NẾU LÀ ÔN LUYỆN -> Giữ nguyên logic cũ
   const ok = isCorrect(q, userAns);
   const fb = $('q-fb');
   fb.style.display = 'block';
@@ -286,9 +338,11 @@ function lockAndShowFeedback(q, userAns){
 function selectAnsSingle(idx){
   const q = qState.qs[qState.idx];
   const btns = document.querySelectorAll('.opt');
-  btns.forEach(b => b.disabled = true);
-  btns[idx].classList.add(idx === q.ans ? 'correct' : 'wrong');
-  if(idx !== q.ans) btns[q.ans].classList.add('correct');
+  if (qState.mode !== 'exam') {
+    btns.forEach(b => b.disabled = true);
+    btns[idx].classList.add(idx === q.ans ? 'correct' : 'wrong');
+    if(idx !== q.ans) btns[q.ans].classList.add('correct');
+  }
   lockAndShowFeedback(q, idx);
 }
 
@@ -301,14 +355,16 @@ function confirmMulti(){
   const q = qState.qs[qState.idx];
   const chosen = Array.from(multiSelected).sort((a,b)=>a-b);
   const btns = document.querySelectorAll('.opt.multi');
-  btns.forEach((b,i) => {
-    b.disabled = true;
-    const isRight = (q.ans || []).includes(i);
-    const isChosen = chosen.includes(i);
-    if(isRight) b.classList.add('correct');
-    else if(isChosen) b.classList.add('wrong');
-  });
-  $('btn-confirm-multi')?.remove();
+  if (qState.mode !== 'exam') {
+    btns.forEach((b,i) => {
+      b.disabled = true;
+      const isRight = (q.ans || []).includes(i);
+      const isChosen = chosen.includes(i);
+      if(isRight) b.classList.add('correct');
+      else if(isChosen) b.classList.add('wrong');
+    });
+    $('btn-confirm-multi')?.remove();
+  }
   lockAndShowFeedback(q, chosen);
 }
 
@@ -316,12 +372,14 @@ function confirmFillBlank(){
   const q = qState.qs[qState.idx];
   const inputs = Array.from(document.querySelectorAll('.blank-input'));
   const vals = inputs.map(i => i.value.trim());
-  inputs.forEach((inp,i) => {
-    inp.disabled = true;
-    const accepted = String(q.blanks?.[i] || '').split('|').map(s => s.trim().toLowerCase());
-    inp.classList.add(accepted.includes(inp.value.trim().toLowerCase()) ? 'correct' : 'wrong');
-  });
-  $('btn-confirm-fill')?.remove();
+  if (qState.mode !== 'exam') {
+    inputs.forEach((inp,i) => {
+      inp.disabled = true;
+      const accepted = String(q.blanks?.[i] || '').split('|').map(s => s.trim().toLowerCase());
+      inp.classList.add(accepted.includes(inp.value.trim().toLowerCase()) ? 'correct' : 'wrong');
+    });
+    $('btn-confirm-fill')?.remove();
+  }
   lockAndShowFeedback(q, vals);
 }
 
@@ -360,13 +418,15 @@ function confirmDragDrop(){
   const q = qState.qs[qState.idx];
   const slots = Array.from(document.querySelectorAll('.drop-slot'));
   const vals = slots.map(s => s.dataset.filled !== '' ? q.bank[parseInt(s.dataset.filled)] : '');
-  slots.forEach((s,i) => {
-    s.disabled = true;
-    const accepted = String(q.blanks?.[i] || '').split('|').map(v => v.trim().toLowerCase());
-    s.classList.add(accepted.includes((vals[i] || '').trim().toLowerCase()) ? 'correct' : 'wrong');
-  });
-  document.querySelectorAll('.bank-chip').forEach(c => c.disabled = true);
-  $('btn-confirm-drag')?.remove();
+  if (qState.mode !== 'exam') {
+    slots.forEach((s,i) => {
+      s.disabled = true;
+      const accepted = String(q.blanks?.[i] || '').split('|').map(v => v.trim().toLowerCase());
+      s.classList.add(accepted.includes((vals[i] || '').trim().toLowerCase()) ? 'correct' : 'wrong');
+    });
+    document.querySelectorAll('.bank-chip').forEach(c => c.disabled = true);
+    $('btn-confirm-drag')?.remove();
+  }
   lockAndShowFeedback(q, vals);
 }
 
@@ -395,17 +455,19 @@ function confirmMatching(){
   const q = qState.qs[qState.idx];
   const n = (q.pairs || []).length;
   const answer = Array.from({length:n}).map((_,i) => matchPairs[i] !== undefined ? matchPairs[i] : -1);
-  document.querySelectorAll('.match-left').forEach((b,i) => {
-    b.disabled = true;
-    b.classList.add(matchPairs[i] === i ? 'correct' : 'wrong');
-  });
-  document.querySelectorAll('.match-right').forEach(b => {
-    b.disabled = true;
-    const orig = parseInt(b.dataset.orig);
-    const leftIdx = Object.keys(matchPairs).find(k => matchPairs[k] === orig);
-    if(leftIdx !== undefined) b.classList.add(parseInt(leftIdx) === orig ? 'correct' : 'wrong');
-  });
-  $('btn-confirm-match')?.remove();
+  if (qState.mode !== 'exam') {
+    document.querySelectorAll('.match-left').forEach((b,i) => {
+      b.disabled = true;
+      b.classList.add(matchPairs[i] === i ? 'correct' : 'wrong');
+    });
+    document.querySelectorAll('.match-right').forEach(b => {
+      b.disabled = true;
+      const orig = parseInt(b.dataset.orig);
+      const leftIdx = Object.keys(matchPairs).find(k => matchPairs[k] === orig);
+      if(leftIdx !== undefined) b.classList.add(parseInt(leftIdx) === orig ? 'correct' : 'wrong');
+    });
+    $('btn-confirm-match')?.remove();
+  }
   lockAndShowFeedback(q, answer);
 }
 
@@ -513,6 +575,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-finish').addEventListener('click', finishExam);
   $('btn-home').addEventListener('click', goHome);
   $('btn-retake').addEventListener('click', retake);
+  $('btn-prev')?.addEventListener('click', () => { qState.idx--; persist(); renderQ(); });
+  
+  // Lắng nghe click vào bảng số
+  $('exam-nav-palette')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-qnav');
+      if(btn) {
+          qState.idx = parseInt(btn.dataset.idx);
+          persist(); renderQ();
+      }
+  });
+
   $('q-opts').addEventListener('click', e => {
     const btn = e.target.closest('.answer-btn');
     if(btn){
