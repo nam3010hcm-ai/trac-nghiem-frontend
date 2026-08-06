@@ -199,16 +199,18 @@ $('e-list').addEventListener('click', e => {
   const btn = e.target.closest('.e-action');
   if (!btn) return;
 
-  const id = parseInt(btn.dataset.id); 
-  // (Nếu id của bạn trong Firebase là chuỗi string, hãy bỏ parseInt đi và dùng: const id = btn.dataset.id;)
+  // Lấy ID và ép kiểu an toàn (để dùng được cho cả ID dạng số lẫn chữ)
+  const id = isNaN(btn.dataset.id) ? btn.dataset.id : Number(btn.dataset.id);
 
-  if (btn.dataset.action === 'toggle') toggleExamVisibility(id);
-  if (btn.dataset.action === 'delete') deleteExam(id);
-  
-  // THÊM DÒNG NÀY ĐỂ MỞ FORM SỬA
-  if (btn.dataset.action === 'edit') openEForm(id); 
-  // Đặt ngay dưới lệnh bắt nút edit (sửa)
-  if (btn.dataset.action === 'manage-q') window.openExamQuestionManager(id);
+  if (btn.dataset.action === 'toggle') {
+      toggleExamVisibility(id);
+  } else if (btn.dataset.action === 'delete') {
+      deleteExam(id);
+  } else if (btn.dataset.action === 'edit') {
+      openEForm(id); 
+  } else if (btn.dataset.action === 'manage-q') {
+      window.openExamQuestionManager(id);
+  }
 });
 
 $('btn-add-parent').addEventListener('click', addParentCategory);
