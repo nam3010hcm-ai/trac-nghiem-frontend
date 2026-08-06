@@ -84,6 +84,12 @@ window.MathJax = {
       <div class="pfill" id="q-pbar" style="width:10%"></div>
     </div>
 
+    <!-- BẢNG ĐIỀU HƯỚNG CÂU HỎI (Chỉ hiện khi Thi thật) -->
+    <div id="exam-nav-palette" style="display:none; margin-bottom: 15px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px; color: #334155;">Danh sách câu hỏi (Xanh: Đã làm)</div>
+        <div id="q-nav-grid" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+    </div>
+
     <div class="card">
       <div class="cat-badge" id="q-cat">Word</div>
       <div style="font-size:16px;font-weight:600;margin-bottom:20px;line-height:1.65" id="q-text">...</div>
@@ -95,6 +101,7 @@ window.MathJax = {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
       <div style="font-size:13px;color:#6b7280;font-weight:500" id="q-live">Đúng: 0/0</div>
       <div>
+        <button class="btn" id="btn-prev" style="display:none; margin-right: 8px; background: #e2e8f0;">⬅ Câu trước</button>
         <button class="btn btn-p" id="btn-next" style="display:none">Tiếp theo →</button>
         <button class="btn btn-p" id="btn-finish" style="display:none">✅ Nộp bài</button>
       </div>
