@@ -293,32 +293,78 @@ $('part-container').addEventListener('click', e => {
 async function finishExam(){
   if(!qState.qs) return;
   clearInterval(qState.timer);
-  const {qs, answers, student, exam} = qState;
-  const cor = answers.filter((a,i)=> qs[i].type !== 'essay' && isCorrect(qs[i], a)).length;
-  const total = qs.filter(q => q.type !== 'essay').length || 1; // Chỉ tính câu trắc nghiệm
-  const pct = Math.round(cor / total * 100);
-  const score = Math.round(cor / total * 10) / 10; // Giả định trắc nghiệm thang điểm 10
+  const {qs, answers, student, exam, parts} = qState;
+  
+  let autoScore = 0; // Điểm trắc nghiệm tự động chấm
+  let totalMaxScore = 0; // Tổng điểm tối đa của đề (Bao gồm cả Tự luận)
+  let cor = 0; // Tổng số câu trắc nghiệm đúng
+
+  // THUẬT TOÁN TÍNH ĐIỂM THEO TỪNG PART
+  parts.forEach(part => {
+      // 1. Quét tìm [số điểm] ở cuối tên Part (Ví dụ: "PART I: LISTENING [2.5]" -> lấy số 2.5)
+      const match = part.name.match(/\[(\d+(?:\.\d+)?)\]/);
+      const partPoints = match ? parseFloat(match[1]) : 0;
+      totalMaxScore += partPoints;
+
+      // 2. Lọc các câu KHÔNG phải tự luận trong Part này để chấm tự động
+      const objectiveQs = part.questions.filter(q => q.type !== 'essay');
+      const totalObjInPart = objectiveQs.length;
+
+      if (totalObjInPart > 0 && partPoints > 0) {
+          let correctInPart = 0;
+          objectiveQs.forEach(q => {
+              const ua = answers[q.globalIdx];
+              if (isCorrect(q, ua)) {
+                  correctInPart++;
+                  cor++; // Cộng dồn vào tổng câu đúng toàn bài
+              }
+          });
+          
+          // 3. Tính điểm đạt được cho Part này = (Số câu đúng / Tổng câu của Part) * Điểm quy định
+          const earnedInPart = (correctInPart / totalObjInPart) * partPoints;
+          autoScore += earnedInPart;
+      }
+  });
+
+  const totalObjQs = qs.filter(q => q.type !== 'essay').length || 1; // Tổng số câu trắc nghiệm toàn bài
+  
+  // NẾU GIÁO VIÊN QUÊN GHI [ĐIỂM]: Hệ thống tự động quay về thang điểm 10 mặc định chia đều
+  if (totalMaxScore === 0) {
+      autoScore = (cor / totalObjQs) * 10;
+      totalMaxScore = 10;
+  }
+
+  // Làm tròn điểm số đến 2 chữ số thập phân
+  const score = Math.round(autoScore * 100) / 100;
+  const pct = Math.round((cor / totalObjQs) * 100);
   const elapsed = Math.round((Date.now() - qState.startTime) / 1000);
   
   const result = {
     student: student.name, sid: student.id, cohort: student.cohort, exam: exam.name, 
-    correct: cor, total, score, manualScore: 0, pct, time: elapsed, 
+    correct: cor, total: totalObjQs, score, manualScore: 0, pct, time: elapsed, 
     at: new Date().toLocaleString('vi-VN'), timestamp: Date.now(),
     answers: answers // LƯU TOÀN BỘ ĐÁP ÁN (Bao gồm bài Writing) LÊN SERVER
   };
   await saveResult(result); 
   clearPersist();
 
+  // ----- HIỂN THỊ KẾT QUẢ -----
   $('r-name').innerHTML = `
     <div style="font-size: 15px; font-weight: 500; line-height: 1.6; color: #334155; margin-top: 8px;">
         Mã HV: <b style="color: #0f172a;">${student.id}</b><br>
         Tên: <b style="color: #0f172a;">${student.name}</b><br>
         Ca thi: <b style="color: #0f172a;">${student.cohort}</b>
     </div>`;
-  $('r-score').textContent = score; $('r-cor').textContent = cor; $('r-wrg').textContent = total - cor;
+  $('r-score').textContent = score; 
+  
+  // Đổi chữ "điểm/10" thành tổng điểm cấu trúc của đề thi
+  const lbl = document.querySelector('.score-lbl');
+  if(lbl) lbl.textContent = `điểm / ${totalMaxScore}`;
+
+  $('r-cor').textContent = cor; $('r-wrg').textContent = totalObjQs - cor;
   $('r-time').textContent = (elapsed>=60 ? Math.floor(elapsed/60)+'p ' : '') + (elapsed%60) + 's';
   $('r-pct').textContent = pct + '%';
-  $('r-msg').textContent = "Bài làm đã được nộp! Phần Tự Luận sẽ được GV chấm sau.";
+  $('r-msg').textContent = "Bài làm đã được nộp! (Chờ GV chấm điểm phần Tự Luận nếu có).";
   
   $('btn-retake').style.display = (qState.mode === 'exam') ? 'none' : 'block';
   $('r-review').innerHTML = qs.map((q,i)=>{
