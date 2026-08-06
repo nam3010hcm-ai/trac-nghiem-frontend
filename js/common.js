@@ -132,17 +132,15 @@ export function typesetMath(root=document.body){
 }
 
 export function getPool(exam){
-  let pool = state.questions.slice();
-  
-  // 1. Nếu giáo viên đã chọn thủ công (mảng qIds có dữ liệu) -> Chỉ lấy những câu đó
+  // 1. NẾU GIÁO VIÊN SOẠN THỦ CÔNG -> Trích xuất chính xác theo mảng thứ tự qIds
   if(exam.qIds && exam.qIds.length > 0){
-      return pool.filter(q => exam.qIds.includes(q.id));
+      return exam.qIds.map(id => state.questions.find(q => q.id === id)).filter(Boolean);
   }
   
-  // 2. Nếu không chọn thủ công -> Vẫn lấy ngẫu nhiên theo chủ đề như cũ
+  // 2. NẾU LÀ ĐỀ TỰ ĐỘNG -> Lọc tất cả từ trong kho
+  let pool = state.questions.slice();
   if(exam.subcat) pool = pool.filter(q => q.subcat === exam.subcat);
   else if(exam.cat) pool = pool.filter(q => q.cat === exam.cat);
-  
   return pool;
 }
 
