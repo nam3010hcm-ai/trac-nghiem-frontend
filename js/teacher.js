@@ -146,7 +146,7 @@ $('flt-cat').addEventListener('change', () => {
 
 $('qf-cat').addEventListener('change', updateQFormSubcat);
 $('ef-cat').addEventListener('change', updateEFormSubcat);
-
+$('flt-r-cohort')?.addEventListener('change', renderResults);
 $('btn-filter-q').addEventListener('click', () => {
   renderQuestions();
 
