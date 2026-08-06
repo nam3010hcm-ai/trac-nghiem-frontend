@@ -57,7 +57,8 @@ function togglePasswordVisibility() {
 }
 
 function switchTTab(t) {
-  ['q', 'e', 'r', 'c', 'cohort'].forEach(x => {
+  // CẬP NHẬT: Thêm tab 'img' vào danh sách duyệt
+  ['q', 'e', 'r', 'c', 'cohort', 'img'].forEach(x => {
     const content = $('tc-' + x);
     if(content) content.classList.toggle('active', x === t);
     
@@ -67,10 +68,11 @@ function switchTTab(t) {
 
   if (t === 'r') renderResults();
   if (t === 'c') renderCatManagementList();
+  if (t === 'img' && typeof window.loadGallery === 'function') window.loadGallery(); // Tải thư viện khi bấm tab
   if (t === 'cohort') {
-      loadCohorts(); // Tải danh sách ca thi
+      loadCohorts(); 
       if (typeof window.populateCohortExams === 'function') {
-          window.populateCohortExams(); // Tải danh sách checkbox đề thi
+          window.populateCohortExams(); 
       }
   }
 }
@@ -116,8 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderExams();
     renderResults();
     renderCatManagementList();
-    loadCohorts(); // THÊM DÒNG NÀY ĐỂ HIỂN THỊ CA THI KHI VỪA ĐĂNG NHẬP
-    window.populateCohortExams(); // THÊM DÒNG NÀY VÀO ĐÂY LÀ XONG!
+    loadCohorts(); 
+    window.populateCohortExams(); 
 
   } else {
     $('t-login').style.display = 'block';
@@ -636,4 +638,124 @@ window.removeQFromExam = async (qId) => {
     await updateDoc(doc(db, "exams", String(exam.id)), { qIds: exam.qIds, count: exam.count });
     renderEqmLists();
     renderExams();
+};
+
+// ==========================================
+// QUẢN LÝ THƯ VIỆN ẢNH (GALLERY)
+// ==========================================
+window.imageGallery = [];
+
+window.loadGallery = async function() {
+    const list = document.getElementById("gallery-list");
+    if (!list) return;
+    try {
+        const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        window.imageGallery = [];
+        snap.forEach(docSnap => window.imageGallery.push({ id: docSnap.id, ...docSnap.data() }));
+        renderGallery();
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = "Lỗi tải thư viện.";
+    }
+};
+
+function renderGallery() {
+    const list = document.getElementById("gallery-list");
+    const modalList = document.getElementById("modal-gallery-list");
+    
+    if (!window.imageGallery.length) {
+        const emptyMsg = "<div style='color:#64748b; font-size:14px;'>Chưa có ảnh nào trong thư viện.</div>";
+        if(list) list.innerHTML = emptyMsg;
+        if(modalList) modalList.innerHTML = emptyMsg;
+        return;
+    }
+
+    const html = window.imageGallery.map(img => `
+        <div style="border:1px solid #cbd5e1; border-radius:8px; padding:10px; width:160px; text-align:center; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <img src="${img.base64}" style="max-width:100%; height:100px; object-fit:contain; margin-bottom:8px; border-radius:4px; border:1px solid #f1f5f9;">
+            <div style="font-size:12px; font-weight:600; color:#334155; margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${img.name}">${img.name}</div>
+            <button class="btn btn-sm btn-danger" onclick="window.deleteGalleryItem('${img.id}')" style="width:100%;">🗑 Xóa</button>
+        </div>
+    `).join('');
+    
+    const modalHtml = window.imageGallery.map(img => `
+        <div style="border:1px solid #cbd5e1; border-radius:8px; padding:10px; width:160px; text-align:center; background:#fff; cursor:pointer; transition:0.2s;" onclick="window.selectGalleryImage('${img.base64}')" onmouseover="this.style.borderColor='#7c3aed'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='#cbd5e1'; this.style.transform='';">
+            <img src="${img.base64}" style="max-width:100%; height:100px; object-fit:contain; margin-bottom:8px;">
+            <div style="font-size:12px; font-weight:600; color:#7c3aed; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${img.name}">${img.name}</div>
+        </div>
+    `).join('');
+
+    if(list) list.innerHTML = html;
+    if(modalList) modalList.innerHTML = modalHtml;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const galFile = document.getElementById('gal-file');
+    if (galFile) {
+        galFile.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width, height = img.height;
+                    const MAX = 800;
+                    if (width > height) { if (width > MAX) { height *= MAX / width; width = MAX; } }
+                    else { if (height > MAX) { width *= MAX / height; height = MAX; } }
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    const b64 = canvas.toDataURL('image/jpeg', 0.7); 
+                    
+                    document.getElementById('gal-base64').value = b64;
+                    document.getElementById('gal-preview').innerHTML = `<img src="${b64}" style="max-height:150px; border-radius:6px; border:1px solid #cbd5e1;">`;
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const btnUploadGal = document.getElementById('btn-upload-gal');
+    if (btnUploadGal) {
+        btnUploadGal.addEventListener('click', async () => {
+            const name = document.getElementById('gal-name').value.trim();
+            const b64 = document.getElementById('gal-base64').value;
+            if (!name) { alert("Vui lòng nhập tên gợi nhớ cho ảnh!"); return; }
+            if (!b64) { alert("Vui lòng chọn 1 file ảnh!"); return; }
+
+            btnUploadGal.disabled = true;
+            btnUploadGal.textContent = "Đang tải lên...";
+            try {
+                await addDoc(collection(db, "gallery"), { name: name, base64: b64, createdAt: Date.now() });
+                alert("Đã lưu ảnh vào thư viện!");
+                document.getElementById('gal-name').value = '';
+                document.getElementById('gal-file').value = '';
+                document.getElementById('gal-base64').value = '';
+                document.getElementById('gal-preview').innerHTML = '';
+                if (window.loadGallery) window.loadGallery();
+            } catch (e) { console.error(e); alert("Lỗi khi tải ảnh lên!"); }
+            btnUploadGal.disabled = false;
+            btnUploadGal.textContent = "Tải lên Thư viện";
+        });
+    }
+});
+
+window.deleteGalleryItem = async function(id) {
+    if (!confirm("Xóa ảnh này khỏi thư viện?\nLưu ý: Các câu hỏi đang dùng ảnh này không bị ảnh hưởng, nhưng ảnh sẽ biến mất khỏi thư viện.")) return;
+    await deleteDoc(doc(db, "gallery", id));
+    if (window.loadGallery) window.loadGallery();
+};
+
+window.selectGalleryImage = function(b64) {
+    const qfImage = document.getElementById('qf-image');
+    const imgPreview = document.getElementById('image-preview');
+    
+    if (qfImage) qfImage.value = b64;
+    if (imgPreview) imgPreview.innerHTML = `<img src="${b64}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">`;
+    
+    const modal = document.getElementById('modal-select-gallery');
+    if (modal) modal.style.display = 'none';
 };
