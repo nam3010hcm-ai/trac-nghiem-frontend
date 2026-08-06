@@ -100,6 +100,7 @@ window.MathJax = {
             <option value="fill_blank">Điền từ vào chỗ trống</option>
             <option value="drag_drop">Kéo-thả vào chỗ trống</option>
             <option value="matching">Ghép cặp</option>
+            <option value="essay">📝 Tự luận (Writing / Essay)</option> <!-- THÊM DÒNG NÀY -->
           </select>
         </div>
 
@@ -431,5 +432,26 @@ window.MathJax = {
 </div><!-- Đây là thẻ đóng của <div class="main"> -->
 
 <script type="module" src="js/teacher.js"></script>
+<!-- MODAL CHẤM BÀI TỰ LUẬN -->
+<div id="grade-modal" class="screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div class="card" style="width:90%; max-width:600px; max-height:90vh; overflow-y:auto; position:relative;">
+        <h3 style="margin-top:0; color:#1e293b;">📝 Chấm bài Tự Luận</h3>
+        <div id="grade-student-info" style="font-size:13px; color:#64748b; margin-bottom:15px;"></div>
+        
+        <div id="grade-essay-content" style="background:#f8fafc; padding:15px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:15px; font-family:serif; line-height:1.6; white-space:pre-wrap;">
+            <!-- Nội dung bài viết của học sinh sẽ hiện ở đây -->
+        </div>
+
+        <div class="fg">
+            <label>Điểm cho phần Writing này (VD: Tối đa 2.0)</label>
+            <input type="number" id="grade-score-input" step="0.1" min="0" placeholder="Nhập điểm số...">
+        </div>
+
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-p" id="btn-save-grade" style="flex:1;">✅ Lưu điểm & Cập nhật Tổng</button>
+            <button class="btn" id="btn-close-grade" style="flex:1;">Hủy</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
