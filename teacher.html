@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Quản trị - Quiz Trắc nghiệm</title>
+<title>Quản trị - Trắc nghiệm</title>
 <link rel="stylesheet" href="css/style.css"/>
 
 <script>
@@ -304,7 +304,7 @@ window.MathJax = {
                 <th>Đề thi</th>
                 <th style="text-align:center;">Điểm</th>
                 <th style="text-align:center;">Câu đúng</th>
-                <th style="text-align:center;">Thời gian làm bài</th>
+                <th style="text-align:center;">Thời gian</th>
                 <th>Lúc nộp</th>
               </tr>
             </thead>
@@ -338,6 +338,12 @@ window.MathJax = {
           <div style="font-weight:700;font-size:14px;margin-bottom:10px;color:#1e293b">
             🏷️ 2. TẠO PART (PHẦN THI CHI TIẾT)
           </div>
+          <!-- THÊM KHỐI GHI CHÚ NÀY VÀO -->
+          <div class="info-note" style="margin-top: 0px; margin-bottom: 12px; font-size: 12px; color: #b45309; background: #fffbeb; padding: 8px; border-radius: 4px; border-left: 3px solid #f59e0b;">
+            💡 <b>Quy định điểm số:</b> Gõ thêm <b>[số điểm]</b> ở cuối tên PART để hệ thống tự động chia điểm cho các câu hỏi bên trong.<br>
+            <i>VD: PART I: LISTENING [2]</i> (Hệ thống hiểu Part này tối đa 2 điểm).
+          </div>
+          <!-- KẾT THÚC KHỐI GHI CHÚ -->
           <div class="fg">
             <label>Nằm trong Ngân hàng nào?</label>
             <select id="add-sub-parent"></select>
