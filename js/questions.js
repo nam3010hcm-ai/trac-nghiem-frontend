@@ -65,7 +65,7 @@ function ensureQuestionTools(){
     if(t === 'fill_blank' || t === 'drag_drop') renderBlankInputs();
   });
 
-  // --- XỬ LÝ UPLOAD VÀ XEM TRƯỚC ẢNH CHỌN TỪ MÁY ---
+  // --- XỬ LÝ UPLOAD VÀ NÉN ẢNH (TỰ ĐỘNG THU NHỎ DUNG LƯỢNG) ---
   const imgFile = $('qf-image-file');
   if (imgFile && !imgFile.dataset.bound) {
       imgFile.addEventListener('change', (e) => {
@@ -75,20 +75,41 @@ function ensureQuestionTools(){
               $('qf-image').value = '';
               return;
           }
+          
           const reader = new FileReader();
           reader.onload = (ev) => {
-              const base64Str = ev.target.result;
-              // 1. Tự động gắn dữ liệu vào ô input lưu trữ
-              $('qf-image').value = base64Str; 
-              // 2. Hiển thị ảnh xem trước
-              $('image-preview').innerHTML = `<img src="${base64Str}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">`;
+              const img = new Image();
+              img.onload = () => {
+                  // Thuật toán nén ảnh bằng Canvas
+                  const canvas = document.createElement('canvas');
+                  const MAX_WIDTH = 800; // Giới hạn chiều rộng
+                  const MAX_HEIGHT = 800; // Giới hạn chiều cao
+                  let width = img.width;
+                  let height = img.height;
+
+                  if (width > height) {
+                      if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                  } else {
+                      if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                  }
+                  
+                  canvas.width = width; canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, 0, 0, width, height);
+                  
+                  // Xuất ra Base64 định dạng JPEG chất lượng 70% (Siêu nhẹ)
+                  const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                  
+                  $('qf-image').value = compressedBase64; 
+                  $('image-preview').innerHTML = `<img src="${compressedBase64}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">`;
+              };
+              img.src = ev.target.result;
           };
           reader.readAsDataURL(file);
       });
       imgFile.dataset.bound = "true";
   }
 
-  // --- XỬ LÝ XEM TRƯỚC KHI GIÁO VIÊN DÁN LINK ẢNH ---
   const imgInput = $('qf-image');
   if (imgInput && !imgInput.dataset.bound) {
       imgInput.addEventListener('input', (e) => {
@@ -104,8 +125,10 @@ export function openQForm(id = null){
   $('qform-title').textContent = id ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới';
   ['qf-ans-m0','qf-ans-m1','qf-ans-m2','qf-ans-m3'].forEach(cid => { if($(cid)) $(cid).checked = false; });
   
-  // Reset input file ảnh
+  // RESET TRIỆT ĐỂ KHỐI HÌNH ẢNH MỖI LẦN MỞ FORM
   if($('qf-image-file')) $('qf-image-file').value = '';
+  if($('qf-image')) $('qf-image').value = '';
+  if($('image-preview')) $('image-preview').innerHTML = '';
 
   if(id){
     const q = state.questions.find(x => x.id === id);
@@ -118,15 +141,13 @@ export function openQForm(id = null){
     $('qf-text').value = q.text || '';
     if($('qf-audio')) $('qf-audio').value = q.audio || '';
     
-    // Nạp ảnh cũ và hiển thị preview
-    if($('qf-image')) {
-        $('qf-image').value = q.image || '';
-        if($('image-preview')) {
-            $('image-preview').innerHTML = q.image ? `<img src="${q.image}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">` : '';
-        }
+    // Phục hồi hình ảnh nếu câu này có ảnh
+    if(q.image) {
+        $('qf-image').value = q.image;
+        $('image-preview').innerHTML = `<img src="${q.image}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px; border: 1px solid #e2e8f0;">`;
     }
 
-    if($('qf-explain')) $('qf-explain').value = q.explain || ''; // Nạp giải thích cũ khi sửa
+    if($('qf-explain')) $('qf-explain').value = q.explain || '';
     $('qf-a').value = q.opts?.[0] || '';
     $('qf-b').value = q.opts?.[1] || '';
     $('qf-c').value = q.opts?.[2] || '';
@@ -141,8 +162,7 @@ export function openQForm(id = null){
     applyQTypeUI();
     if(type === 'fill_blank' || type === 'drag_drop') renderBlankInputs(q.blanks || []);
   }else{
-    ['qf-text','qf-audio','qf-image','qf-explain','qf-a','qf-b','qf-c','qf-d','qf-bank','qf-pairs'].forEach(id => { if($(id)) $(id).value = ''; });
-    if($('image-preview')) $('image-preview').innerHTML = ''; // Làm sạch preview
+    ['qf-text','qf-audio','qf-explain','qf-a','qf-b','qf-c','qf-d','qf-bank','qf-pairs'].forEach(id => { if($(id)) $(id).value = ''; });
     $('qf-ans').value = '0';
     $('qf-type').value = 'mcq_single';
     applyQTypeUI();
@@ -166,7 +186,7 @@ export async function saveQ(){
   if(!text){ alert('Vui lòng nhập nội dung câu hỏi!'); return; }
   const image = $('qf-image') ? $('qf-image').value.trim() : '';
   const audio = $('qf-audio') ? $('qf-audio').value.trim() : '';
-  const explain = $('qf-explain') ? $('qf-explain').value.trim() : ''; // Lấy nội dung giải thích
+  const explain = $('qf-explain') ? $('qf-explain').value.trim() : ''; 
   const cat = $('qf-cat').value;
   const subcat = $('qf-subcat').value;
 
@@ -209,10 +229,10 @@ export async function saveQ(){
   if(editQId){
     const q = state.questions.find(x => x.id === editQId);
     delete q.opts; delete q.ans; delete q.blanks; delete q.bank; delete q.pairs;
-    Object.assign(q, { cat, subcat, text, image, audio, explain, ...fields }); // Lưu thêm explain
+    Object.assign(q, { cat, subcat, text, image, audio, explain, ...fields }); 
     await setDoc(doc(db, "questions", String(editQId)), q);
   }else{
-    const newQ = { id: state.nextQId++, cat, subcat, text, image, audio, explain, ...fields }; // Lưu thêm explain
+    const newQ = { id: state.nextQId++, cat, subcat, text, image, audio, explain, ...fields }; 
     state.questions.push(newQ);
     await setDoc(doc(db, "questions", String(newQ.id)), newQ);
   }
@@ -263,7 +283,6 @@ export function renderQuestions(){
       answerHTML = (q.pairs || []).map(p => `<span class="abadge ok">${esc(p.left)} → ${esc(p.right)}</span>`).join('');
     }
 
-    // Hiển thị phần giải thích ngay trong danh sách quản trị (nếu có)
     const explainHTML = q.explain ? `<div style="margin-top:6px; font-size:12px; color:#475569; background:#f8fafc; padding:6px 10px; border-radius:4px; border-left:3px solid #059669;">💡 <b>Giải thích:</b> ${renderRich(q.explain)}</div>` : '';
 
     return `
