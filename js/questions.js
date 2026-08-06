@@ -5,6 +5,48 @@ import { fillSubcatSelect, updateQFormSubcat } from './categories.js';
 let editQId = null;
 let qPage = 1;
 
+// ==============================================================
+// HỆ THỐNG SOẠN THẢO VĂN BẢN (B, I, U, ĐỔI MÀU)
+// ==============================================================
+window.insertFormat = function(targetId, startTag, endTag) {
+    const el = document.getElementById(targetId);
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const text = el.value;
+    const selectedText = text.substring(start, end);
+    const replacement = startTag + selectedText + endTag;
+    
+    el.value = text.substring(0, start) + replacement + text.substring(end);
+    el.focus();
+    // Đặt con trỏ vào giữa thẻ vừa chèn
+    el.selectionStart = start + startTag.length;
+    el.selectionEnd = start + startTag.length + selectedText.length;
+    el.dispatchEvent(new Event('input')); 
+};
+
+function initRichTextEditors() {
+    const targets = ['qf-text', 'qf-a', 'qf-b', 'qf-c', 'qf-d', 'qf-explain'];
+    targets.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.toolbarAdded) return;
+        
+        const tb = document.createElement('div');
+        tb.style.cssText = "display:flex; gap:6px; margin-bottom:6px; background:#f8fafc; padding:6px 8px; border-radius:6px; border:1px solid #e2e8f0; align-items:center;";
+        tb.innerHTML = `
+            <button type="button" title="In đậm" style="font-weight:bold; width:28px; height:28px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer; font-size:13px; color:#1e293b; display:flex; align-items:center; justify-content:center;" onclick="window.insertFormat('${id}', '<b>', '</b>')">B</button>
+            <button type="button" title="In nghiêng" style="font-style:italic; width:28px; height:28px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer; font-size:13px; color:#1e293b; display:flex; align-items:center; justify-content:center;" onclick="window.insertFormat('${id}', '<i>', '</i>')">I</button>
+            <button type="button" title="Gạch chân" style="text-decoration:underline; width:28px; height:28px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer; font-size:13px; color:#1e293b; display:flex; align-items:center; justify-content:center;" onclick="window.insertFormat('${id}', '<u>', '</u>')">U</button>
+            <div style="width:1px; height:20px; background:#cbd5e1; margin:0 5px;"></div>
+            <label style="font-size:12px; margin:0; color:#64748b; font-weight:600;">Màu chữ:</label>
+            <input type="color" title="Đổi màu chữ" style="width:28px; height:28px; padding:0; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; background:#fff;" onchange="window.insertFormat('${id}', '<span style=\\'color:'+this.value+'\\'>', '</span>'); this.value='#000000';">
+        `;
+        el.parentNode.insertBefore(tb, el);
+        el.dataset.toolbarAdded = "true";
+    });
+}
+// ==============================================================
+
 // --- Hiển thị/ẩn khối input tương ứng với loại câu hỏi đang chọn trong form ---
 function applyQTypeUI(){
   const type = $('qf-type').value;
@@ -123,7 +165,6 @@ function ensureQuestionTools(){
           const modal = $('modal-select-gallery');
           if (modal) {
               modal.style.display = 'flex';
-              // Tải lại dữ liệu thư viện để đảm bảo ảnh mới nhất hiển thị
               if(typeof window.loadGallery === 'function') window.loadGallery(); 
           }
       });
@@ -141,6 +182,9 @@ function ensureQuestionTools(){
 }
 
 export function openQForm(id = null){
+  // GỌI HÀM KHỞI TẠO TOOLBAR ĐỊNH DẠNG CHỮ
+  initRichTextEditors();
+
   editQId = id;
   $('qform-title').textContent = id ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới';
   ['qf-ans-m0','qf-ans-m1','qf-ans-m2','qf-ans-m3'].forEach(cid => { if($(cid)) $(cid).checked = false; });
@@ -296,9 +340,15 @@ export function renderQuestions(){
   $('q-list').innerHTML = pageItems.map(q => {
     const type = q.type || 'mcq_single';
     let answerHTML = '';
+    
+    // Cập nhật giao diện xem đáp án có thẻ HTML
     if(type === 'mcq_single' || type === 'mcq_multi'){
       const correctSet = type === 'mcq_multi' ? (q.ans || []) : [q.ans];
-      answerHTML = (q.opts || []).map((o,i) => `<span class="abadge ${correctSet.includes(i)?'ok':''}">${KEYS[i]}. ${renderRich(o)}</span>`).join('');
+      answerHTML = `<div style="display:flex; flex-direction:column; gap:6px;">` + (q.opts || []).map((o,i) => `
+        <div class="abadge ${correctSet.includes(i)?'ok':''}" style="display:flex; gap:8px; padding:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; align-items:center;">
+            <b style="min-width:20px; color:#1e293b;">${KEYS[i]}.</b>
+            <div style="overflow-x:auto; width:100%;">${renderRich(o)}</div>
+        </div>`).join('') + `</div>`;
     }else if(type === 'fill_blank' || type === 'drag_drop'){
       answerHTML = (q.blanks || []).map((b,i) => `<span class="abadge ok">#${i+1}: ${renderRich(b)}</span>`).join('');
       if(q.bank?.length) answerHTML += `<div style="margin-top:4px;font-size:11px;color:#6b7280">Ngân hàng từ: ${esc(q.bank.join(', '))}</div>`;
