@@ -9,7 +9,7 @@ export async function saveResult(result){
 export function renderResults(){
   if(!$('r-count')) return;
   const statsDiv = $('stats-summary');
-  const listTbody = $('r-list');
+  const listTbody = $('r-tbody') || $('r-list');
   
   // 1. Tải danh sách Ca thi vào ô Dropdown lọc (nếu chưa tải)
   const cohortSel = $('flt-r-cohort');
