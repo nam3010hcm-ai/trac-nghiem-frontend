@@ -1,5 +1,5 @@
 // Thêm import các hàm Firebase để lấy danh sách Ca thi
-import { db, collection, getDocs } from './firebase.js';
+import { db, collection, getDocs, query, where } from './firebase.js';
 
 import { initData, state, $, KEYS, shuffle, getPool, esc, mediaHTML, audioHTML, renderRich, typesetMath, isCorrect, formatAnswer, splitBlanks } from './common.js';
 import { populateExamSelect, updateExamDesc } from './exams.js';
@@ -98,15 +98,18 @@ function verifyAndLoadExams() {
     }
 }
 //Kết thúc hàm kiểm tra
-function startExam(){
+async function startExam(){
   const name = $('s-name').value.trim();
   if(!name){ alert('Vui lòng nhập họ tên!'); return; }
+  
+  const studentId = $('s-id').value.trim();
+  if(!studentId){ alert('Vui lòng nhập Mã học viên!'); return; }
   
   const cohortName = $('s-cohort') ? $('s-cohort').value : '';
   if(!cohortName){ alert('Vui lòng chọn ca thi / lớp học!'); return; }
 
   // ====================================================
-  // KIỂM TRA BẢO MẬT 3 LỚP CỦA CA THI
+  // KIỂM TRA BẢO MẬT 4 LỚP CỦA CA THI
   // ====================================================
   const cohort = activeCohortsData[cohortName];
   if (cohort) {
@@ -114,7 +117,7 @@ function startExam(){
       const codeInput = $('s-cohort-code') ? $('s-cohort-code').value.trim().toUpperCase() : '';
       if (codeInput !== cohort.code) {
           alert('❌ Mã truy cập ca thi không chính xác!');
-          return; // Dừng lại ngay lập tức
+          return;
       }
 
       // LỚP 2: KIỂM TRA THỜI GIAN
@@ -130,26 +133,55 @@ function startExam(){
 
       // LỚP 3: KIỂM TRA ĐỀ THI ĐƯỢC PHÉP CHỌN
       const eid = parseInt($('s-exam').value);
-      // Nếu giáo viên có quy định danh sách đề thi (allowedExams)
       if (cohort.allowedExams && cohort.allowedExams.length > 0) {
           if (!cohort.allowedExams.includes(eid)) {
-              alert('❌ Đề thi bạn chọn KHÔNG được phép làm trong Ca thi này!\nVui lòng chọn đúng đề thi được giáo viên chỉ định.');
+              alert('❌ Đề thi bạn chọn KHÔNG được phép làm trong Ca thi này!');
               return;
           }
+      }
+      
+      // LỚP 4: KIỂM TRA SỐ LẦN THI (THI THẬT CHỈ ĐƯỢC 1 LẦN)
+      if (cohort.mode === 'exam') {
+          $('btn-start').disabled = true;
+          $('btn-start').textContent = 'Đang kiểm tra lịch sử thi...';
+          
+          try {
+              // Tìm tất cả kết quả của Ca thi này
+              const q = query(collection(db, "results"), where("cohort", "==", cohortName));
+              const snapshot = await getDocs(q);
+              
+              // Kiểm tra xem Mã học viên này đã có trong danh sách nộp bài chưa
+              const hasTaken = snapshot.docs.some(docSnap => docSnap.data().sid === studentId);
+              
+              if (hasTaken) {
+                  alert('❌ Bạn đã hoàn thành bài thi cho Ca thi này rồi. Chế độ Thi Thật chỉ cho phép mỗi học viên thi 1 lần duy nhất!');
+                  $('btn-start').disabled = false;
+                  $('btn-start').textContent = 'Bắt đầu làm bài →';
+                  return;
+              }
+          } catch (error) {
+              console.error(error);
+              alert('⚠️ Lỗi kiểm tra dữ liệu máy chủ. Vui lòng thử lại!');
+              $('btn-start').disabled = false;
+              $('btn-start').textContent = 'Bắt đầu làm bài →';
+              return;
+          }
+          
+          $('btn-start').disabled = false;
+          $('btn-start').textContent = 'Bắt đầu làm bài →';
       }
   }
   // ====================================================
 
-  const eid = parseInt($('s-exam').value); // Lấy lại eid cho code bên dưới nếu cần
+  const eid = parseInt($('s-exam').value);
   const exam = state.exams.find(e => e.id === eid);
-  //
+  
   if(!exam){ alert('Không tìm thấy đề thi hoặc chưa chọn đề!'); return; }
   
   const pool = getPool(exam);
   let qs;
   
-  // KIỂM TRA: Nếu đề thi có danh sách câu hỏi thủ công từ giáo viên (qIds) thì GIỮ NGUYÊN THỨ TỰ.
-  // Ngược lại nếu là đề bốc tự động thì lấy ngẫu nhiên rồi SẮP XẾP LẠI THEO PART (dựa vào subcat).
+  // Sắp xếp câu hỏi
   if (exam.qIds && exam.qIds.length > 0) {
       qs = pool;
   } else {
@@ -157,32 +189,23 @@ function startExam(){
   }
   
   qs = qs.slice(0, Math.min(exam.count, pool.length));
-  //
   if(!qs.length){ alert('Đề thi chưa có câu hỏi phù hợp!'); return; }
   
-  // LƯU THÊM COHORT VÀO qState
-  // LƯU THÊM COHORT VÀO qState BẰNG BIẾN CHỮ cohortName
   const examMode = cohort && cohort.mode === 'exam' ? 'exam' : 'practice';
 
   qState = { 
       exam, 
-      student: {
-          name: name, 
-          id: $('s-id').value.trim(), 
-          cohort: cohortName // <-- Điểm cốt lõi sửa lỗi [object Object]
-      }, 
+      student: { name: name, id: studentId, cohort: cohortName }, 
       qs, 
       idx: 0, 
       answers: [], 
       startTime: Date.now(), 
       timer: null,
-      mode: examMode // <-- LƯU CHẾ ĐỘ THI
+      mode: examMode
   };
   
   persist(); startTimer(); showStudentBadge(); showScreen('sc-quiz'); renderQ();
 }
-  //
-  
 
 function startTimer(){
   clearInterval(qState.timer);
@@ -550,6 +573,12 @@ async function finishExam(){
   else if(pct>=60){ c.style.borderColor='#f59e0b'; c.style.background='#fffbeb'; sn.style.color='#b45309'; }
   else{ c.style.borderColor='#ef4444'; c.style.background='#fef2f2'; sn.style.color='#b91c1c'; }
   $('r-msg').textContent = pct>=80 ? 'Xuất sắc! Tiếp tục phát huy!' : pct>=60 ? 'Khá tốt! Cần ôn tập thêm.' : 'Cần cố gắng hơn nhé!';
+  // THÊM ĐOẠN NÀY ĐỂ ẨN NÚT THI LẠI
+  if (qState.mode === 'exam') {
+      $('btn-retake').style.display = 'none';
+  } else {
+      $('btn-retake').style.display = 'block';
+  }
   $('r-review').innerHTML = qs.map((q,i)=>{
     const ua = answers[i], ok = isCorrect(q, ua);
     return `<div class="ri">
