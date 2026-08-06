@@ -236,10 +236,63 @@ $('btn-clear-results').addEventListener('click', clearResults);
 // ==========================================
 // QUẢN LÝ CA THI / LỚP HỌC (COHORTS)
 // ==========================================
-// Hàm hiển thị danh sách đề thi dạng Checkbox cho Form tạo Ca thi
-// ==========================================
-// QUẢN LÝ CA THI / LỚP HỌC (COHORTS)
-// ==========================================
+
+// Hàm hiển thị danh sách đề thi dạng Checkbox cho Form tạo / sửa Ca thi
+window.populateCohortExams = function() {
+    const container = document.getElementById("t-cohort-exams");
+    if (!container) return;
+    
+    // Kiểm tra xem dữ liệu đề thi đã được tải về chưa
+    if (typeof state === 'undefined' || !state.exams) {
+        container.innerHTML = '<div style="color:#ef4444; font-size:13px;">Lỗi: Chưa tải được dữ liệu đề thi. Vui lòng F5 lại trang!</div>';
+        return;
+    }
+
+    // LỌC ĐỀ THI: Chỉ lấy những đề KHÔNG BỊ ẨN
+    const visibleExams = state.exams.filter(e => !e.isHidden);
+
+    if (visibleExams.length === 0) {
+        container.innerHTML = '<div style="color:#64748b; font-size:13px; text-align:center; padding: 10px;">Không có đề thi nào đang ở chế độ HIỆN!</div>';
+        return;
+    }
+
+    // RENDER GIAO DIỆN
+    container.innerHTML = visibleExams.map(e => `
+        <label style="
+            display: flex !important; 
+            justify-content: flex-start !important; 
+            align-items: center !important; 
+            text-align: left !important; 
+            gap: 12px; 
+            margin-bottom: 8px; 
+            padding: 10px 12px; 
+            background: #ffffff; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            width: 100%; 
+            box-sizing: border-box;
+            transition: all 0.2s;
+        ">
+            <input type="checkbox" class="cohort-exam-cb" value="${e.id}" style="
+                margin: 0 !important; 
+                width: 18px !important; 
+                height: 18px !important; 
+                flex-shrink: 0; 
+                cursor: pointer;
+            "> 
+            <span style="
+                font-weight: 500; 
+                font-size: 14px; 
+                color: #334155; 
+                word-break: break-word;
+                line-height: 1.4;
+            ">
+                ${e.name}
+            </span>
+        </label>
+    `).join('');
+};
 
 window.allCohortsData = {}; // Biến toàn cục lưu dữ liệu để phục vụ tính năng Sửa
 let editingCohortId = null; // Lưu ID của ca thi đang được sửa
